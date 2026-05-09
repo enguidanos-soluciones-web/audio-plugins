@@ -1,0 +1,256 @@
+desc:Phonitor 3
+author: Cristian Enguídanos Nebot
+version: 0.1
+about:
+  # Phonitor 3
+  Emulacion funcional de la seccion Matrix del SPL Phonitor 3.
+
+  Controles:
+  - CROSSFEED: cantidad de bleed entre canales (ILD, interaural level diff)
+  - ANGLE:     simulacion del angulo de altavoces (ITD, interaural time diff)
+  - CENTER:    atenuacion del centro fantasma (mid en M/S)
+  - MIX:       dry/wet de toda la matriz
+
+  No afiliado a SPL. Aproximacion funcional, no clon del circuito.
+License: MIT
+
+import Tale/rc_filter.jsfx-inc
+
+slider1:crossfeed=0.5<0,1,0.001>Crossfeed
+slider2:angle_norm=0.4<0,1,0.001>Angle
+slider3:center_db=-1.2<-2.0,-0.3,0.001>Center [dB]
+slider4:mix=1<0,1,0.001>Mix
+
+@init
+// ==========================================================================
+// CONSTANTS
+// ==========================================================================
+ANGLE_MIN_DEG = 15;
+ANGLE_MAX_DEG = 75;
+ANGLE_MIN_US  = 90;     // SPL doc: 15 deg ~ 90 us ITD
+ANGLE_MAX_US  = 635;    // SPL doc: 75 deg ~ 635 us ITD
+
+XFEED_MAX     = 0.45;   // bleed amount at crossfeed=max
+
+HEAD_LP_MIN   = 1500;   // Hz: head-shadow LP cutoff at crossfeed=max (more filtered)
+HEAD_LP_MAX   = 5000;   // Hz: at crossfeed=min (less filtered)
+
+// Defaults
+DEF_XFEED  = 0.5;
+DEF_ANGLE  = 0.4;
+DEF_CENTER = -1.2;
+DEF_MIX    = 1.0;
+
+// ==========================================================================
+// DELAY RING BUFFER (interleaved L,R,L,R...)
+// ==========================================================================
+function buf_init(loc, size)
+instance(ptr, base, top, len)
+(
+  base = loc;
+  top  = loc + size;
+  len  = size;
+  ptr  = loc;
+);
+
+function buf_write(L, R)
+instance(ptr, base, top, len)
+(
+  ptr[0] = L;
+  ptr[1] = R;
+  ptr += 2;
+  ptr >= top ? ptr -= len;
+);
+
+function buf_read_at(dtime)
+instance(ptr, base, top, len, outL, outR, y1L, y1R)
+local(rp, frac, off, k, d0L, d0R, d1L, d1R)
+(
+  off  = dtime - floor(dtime) + floor(dtime*0.5)*2;
+  frac = dtime*0.5 - floor(dtime*0.5);
+  rp   = ptr - floor(off) - 4;
+  rp < base ? rp += len;
+
+  d1L = rp[0]; d1R = rp[1];
+  (rp += 2) >= top ? rp -= len;
+  d0L = rp[0]; d0R = rp[1];
+
+  k    = (1-frac) / (1+frac);
+  outL = k*(d0L - y1L) + d1L;
+  outR = k*(d0R - y1R) + d1R;
+  y1L  = outL;
+  y1R  = outR;
+);
+
+DBUF_LOC  = 65536*4;
+DBUF_SIZE = 65536/16;
+DBUF.buf_init(DBUF_LOC, DBUF_SIZE);
+
+// ==========================================================================
+// PARAMETER SMOOTHER (one-pole)
+// ==========================================================================
+function sm_init(cutoff)
+instance(coeff)
+local(g)
+(
+  g     = tan($pi*cutoff/srate);
+  coeff = g/(1+g);
+);
+
+function sm_run(target)
+instance(s, coeff)
+local(y, v)
+(
+  v = coeff*(target - s);
+  y = v + s;
+  s = y + v;
+  y
+);
+
+sm_xfeed.sm_init(20);
+sm_angle.sm_init(20);
+sm_center.sm_init(20);
+sm_mix.sm_init(20);
+sm_lp.sm_init(5);
+
+// Prime smoothers to steady state at defaults
+xfeed_amt_t   = DEF_XFEED * XFEED_MAX;
+M_t           = (ANGLE_MIN_US + DEF_ANGLE * (ANGLE_MAX_US - ANGLE_MIN_US)) * 0.000001 * srate * 2;
+center_gain_t = 10^(DEF_CENTER / 20);
+mix_t         = DEF_MIX;
+lp_cutoff_t   = HEAD_LP_MAX - DEF_XFEED * (HEAD_LP_MAX - HEAD_LP_MIN);
+
+sm_xfeed.s  = xfeed_amt_t;
+sm_angle.s  = M_t;
+sm_center.s = center_gain_t;
+sm_mix.s    = mix_t;
+sm_lp.s     = lp_cutoff_t;
+
+@slider
+xfeed_amt_t   = crossfeed * XFEED_MAX;
+angle_deg     = ANGLE_MIN_DEG + angle_norm * (ANGLE_MAX_DEG - ANGLE_MIN_DEG);
+delay_us      = ANGLE_MIN_US  + angle_norm * (ANGLE_MAX_US  - ANGLE_MIN_US );
+M_t           = delay_us * 0.000001 * srate * 2;
+center_gain_t = 10^(center_db / 20);
+lp_cutoff_t   = HEAD_LP_MAX - crossfeed * (HEAD_LP_MAX - HEAD_LP_MIN);
+mix_t         = mix;
+
+@sample
+// smooth params per-sample
+xfeed_amt   = sm_xfeed.sm_run (xfeed_amt_t);
+M_current   = sm_angle.sm_run (M_t);
+center_gain = sm_center.sm_run(center_gain_t);
+mix_cur     = sm_mix.sm_run   (mix_t);
+lp_cur      = sm_lp.sm_run    (lp_cutoff_t);
+
+// LP cutoff retune
+LP_L.rc_setf(lp_cur);
+LP_R.rc_setf(lp_cur);
+
+dryL = spl0;
+dryR = spl1;
+
+// Crossfeed + Angle (delay-based)
+DBUF.buf_write(spl0, spl1);
+DBUF.buf_read_at(M_current);
+
+// crossed-and-filtered signals (head-shadow approximation)
+crossed_to_L = LP_L.rc_lp(DBUF.outR);
+crossed_to_R = LP_R.rc_lp(DBUF.outL);
+
+// mix direct + crossed with level compensation
+norm = 1 / (1 + xfeed_amt * 0.5);
+wetL = (dryL + xfeed_amt * crossed_to_L) * norm;
+wetR = (dryR + xfeed_amt * crossed_to_R) * norm;
+
+// CENTER: M/S, attenuate mid
+mid  = (wetL + wetR) * 0.5 * center_gain;
+side = (wetL - wetR) * 0.5;
+wetL = mid + side;
+wetR = mid - side;
+
+// MIX dry/wet
+spl0 = dryL * (1-mix_cur) + wetL * mix_cur;
+spl1 = dryR * (1-mix_cur) + wetR * mix_cur;
+
+@gfx 500 240
+
+// Black background
+gfx_set(0, 0, 0, 1);
+gfx_rect(0, 0, gfx_w, gfx_h);
+
+// Title + angle readout
+gfx_setfont(1, "Courier New", 15, 'b');
+gfx_set(0.0, 1.0, 0.2, 1);
+gfx_x = 10; gfx_y = 8;
+gfx_drawstr("PHONITOR 3");
+sprintf(1, "%.0f DEG", angle_deg);
+gfx_measurestr(1, tw, th);
+gfx_x = gfx_w - tw - 10; gfx_y = 8;
+gfx_drawstr(1);
+
+// Separator line
+gfx_set(0.0, 0.55, 0.15, 1);
+gfx_line(0, 28, gfx_w, 28);
+
+// --- Visualization geometry ---
+cx = gfx_w / 2;
+cy = gfx_h - 40;
+radius = min(gfx_w / 2 - 50, cy - 35);
+
+s_angle = angle_deg * $pi / 180;
+
+// Speaker positions (angle from vertical axis, upward)
+lsx = cx - sin(s_angle) * radius;
+lsy = cy - cos(s_angle) * radius;
+rsx = cx + sin(s_angle) * radius;
+rsy = cy - cos(s_angle) * radius;
+
+// Arc between speakers through the top.
+// gfx_arc is CW, 0=right. Top = -pi/2.
+// Left speaker sits at -pi/2 - s_angle, right at -pi/2 + s_angle.
+// Going CW from left to right passes through -pi/2 (top).
+gfx_set(0.0, 0.55, 0.15, 1);
+gfx_arc(cx, cy, radius, -s_angle, s_angle, 1);
+
+// Lines: head edge → speakers
+head_r = 10;
+gfx_set(0.0, 1.0, 0.2, 1);
+llx = cx - sin(s_angle) * head_r;
+lly = cy - cos(s_angle) * head_r;
+rlx = cx + sin(s_angle) * head_r;
+rly = cy - cos(s_angle) * head_r;
+gfx_line(llx, lly, lsx, lsy);
+gfx_line(rlx, rly, rsx, rsy);
+
+// Crossfeed cross-lines — alpha = crossfeed amount
+gfx_set(0.0, 1.0, 0.2, crossfeed * 0.4);
+gfx_line(llx, lly, rsx, rsy);
+gfx_line(rlx, rly, lsx, lsy);
+
+// Head circle + ears
+gfx_set(0.0, 1.0, 0.2, 1);
+gfx_circle(cx, cy, head_r, 0, 1);
+gfx_circle(cx - head_r, cy, 4, 1, 1);
+gfx_circle(cx + head_r, cy, 4, 1, 1);
+
+// Speaker squares
+sw = 12; sh = 18;
+gfx_rect(lsx - sw/2, lsy - sh/2, sw, sh, 0);
+gfx_rect(rsx - sw/2, rsy - sh/2, sw, sh, 0);
+
+// Speaker labels
+gfx_setfont(1, "Courier New", 14, 'b');
+gfx_x = lsx - sw/2 - 20; gfx_y = lsy - 8;
+gfx_drawstr("L");
+gfx_x = rsx + sw/2 + 6;  gfx_y = rsy - 8;
+gfx_drawstr("R");
+
+// Bottom status line
+gfx_set(0.0, 0.55, 0.15, 1);
+gfx_line(0, gfx_h - 28, gfx_w, gfx_h - 28);
+gfx_setfont(1, "Courier New", 15, 'b');
+gfx_set(0.0, 1.0, 0.2, 1);
+sprintf(2, "XFEED:%.0f%%  CENTER:%.2fdB  MIX:%.0f%%", crossfeed*100, center_db, mix*100);
+gfx_x = 10; gfx_y = gfx_h - 22;
+gfx_drawstr(2);
