@@ -52,12 +52,14 @@ impl PinkNoise {
     #[inline]
     pub fn next(&mut self) -> f64 {
         let white = self.white();
-        self.b0 =  0.99886 * self.b0 + white * 0.0555179;
-        self.b1 =  0.99332 * self.b1 + white * 0.0750759;
-        self.b2 =  0.96900 * self.b2 + white * 0.1538520;
-        self.b3 =  0.86650 * self.b3 + white * 0.3104856;
-        self.b4 =  0.55000 * self.b4 + white * 0.5329522;
+
+        self.b0 = 0.99886 * self.b0 + white * 0.0555179;
+        self.b1 = 0.99332 * self.b1 + white * 0.0750759;
+        self.b2 = 0.96900 * self.b2 + white * 0.1538520;
+        self.b3 = 0.86650 * self.b3 + white * 0.3104856;
+        self.b4 = 0.55000 * self.b4 + white * 0.5329522;
         self.b5 = -0.76160 * self.b5 - white * 0.0168980;
+
         let pink = (self.b0 + self.b1 + self.b2 + self.b3 + self.b4 + self.b5 + white * 0.5362) * 0.11;
         pink.clamp(-1.0, 1.0)
     }
@@ -68,6 +70,7 @@ impl PinkNoise {
         self.rng ^= self.rng << 13;
         self.rng ^= self.rng >> 7;
         self.rng ^= self.rng << 17;
+
         // Map u64 to [-1, 1]
         (self.rng as i64 as f64) / (i64::MAX as f64)
     }
