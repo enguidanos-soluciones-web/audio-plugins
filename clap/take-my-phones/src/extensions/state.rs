@@ -79,10 +79,7 @@ pub extern "C" fn load(plugin: *const clap_plugin_t, stream: *const clap_istream
 
     main_thread.param_snapshot.store(Arc::new(new_snapshot));
     for id in 0..PARAMS_COUNT {
-        let _ = main_thread.param_changes.push(ParamChange {
-            id,
-            value: new_snapshot.values[id],
-        });
+        let _ = main_thread.param_changes.push(ParamChange::Value { id, value: new_snapshot.values[id] });
     }
 
     true

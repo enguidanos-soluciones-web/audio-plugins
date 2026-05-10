@@ -23,31 +23,40 @@ pub fn Layout() -> Element {
     rsx! {
         div {
             class: "flex flex-col h-full w-full bg-neutral-900",
-            onmousemove: move |e| {
-                if drag.read().is_none() {
-                    return;
-                }
+            onmousemove: {
+                let dispatcher = dispatcher.clone();
+                move |e| {
+                    if drag.read().is_none() {
+                        return;
+                    }
 
-                if !e.data().held_buttons().contains(dioxus::html::input_data::MouseButton::Primary) {
-                    drag.set(None);
-                    drag_last_dispatch.set(None);
-                    return;
-                }
+                    if !e.data().held_buttons().contains(dioxus::html::input_data::MouseButton::Primary) {
+                        if let Some(active) = drag.read().as_ref() {
+                            dispatcher(GuiRequest::EndGesture(active.param_id()));
+                        }
+                        drag.set(None);
+                        drag_last_dispatch.set(None);
+                        return;
+                    }
 
-                let now = Instant::now();
-                let should_dispatch = drag_last_dispatch
-                    .read()
-                    .map_or(true, |t| now.duration_since(t) >= DRAG_THROTTLE);
+                    let now = Instant::now();
+                    let should_dispatch = drag_last_dispatch
+                        .read()
+                        .map_or(true, |t| now.duration_since(t) >= DRAG_THROTTLE);
 
-                if should_dispatch {
-                    let coords = e.data().client_coordinates();
-                    if let Some(change) = drag.read().as_ref().and_then(|a| a.on_drag(coords.x, coords.y)) {
-                        dispatcher(GuiRequest::SetParam(change.index, change.value));
-                        drag_last_dispatch.set(Some(now));
+                    if should_dispatch {
+                        let coords = e.data().client_coordinates();
+                        if let Some(change) = drag.read().as_ref().and_then(|a| a.on_drag(coords.x, coords.y)) {
+                            dispatcher(GuiRequest::SetParam(change.index, change.value));
+                            drag_last_dispatch.set(Some(now));
+                        }
                     }
                 }
             },
             onmouseup: move |_| {
+                if let Some(active) = drag.read().as_ref() {
+                    dispatcher(GuiRequest::EndGesture(active.param_id()));
+                }
                 drag.set(None);
                 drag_last_dispatch.set(None);
             },

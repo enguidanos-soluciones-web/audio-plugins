@@ -65,7 +65,11 @@ pub struct Bs2bChannelState {
 
 impl Bs2bChannelState {
     pub fn new() -> Self {
-        Self { lp_y1: 0.0, hb_x1: 0.0, hb_y1: 0.0 }
+        Self {
+            lp_y1: 0.0,
+            hb_x1: 0.0,
+            hb_y1: 0.0,
+        }
     }
 
     pub fn reset(&mut self) {

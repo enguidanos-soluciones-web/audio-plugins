@@ -9,8 +9,8 @@ struct FeatureList([*const c_char; 3]);
 unsafe impl Sync for FeatureList {}
 
 static PLUGIN_FEATURES: FeatureList = FeatureList([
-    CLAP_PLUGIN_FEATURE_MONO.as_ptr(),
-    CLAP_PLUGIN_FEATURE_AUDIO_EFFECT.as_ptr(),
+    CLAP_PLUGIN_FEATURE_STEREO.as_ptr(),
+    CLAP_PLUGIN_FEATURE_UTILITY.as_ptr(),
     std::ptr::null(),
 ]);
 

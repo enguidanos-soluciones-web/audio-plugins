@@ -1,7 +1,14 @@
 use crate::{
     clap::*,
     helper::copy_cstr,
-    parameters::any::{AnyParameter, PARAMS_COUNT},
+    parameters::{
+        Parameter, Range, Select,
+        any::{AnyParameter, PARAMS_COUNT},
+        calibration_mode::CalibrationMode,
+        cutoff::Cutoff,
+        mix::Mix,
+        xfeed::XFeed,
+    },
     plugin::Plugin,
     processors::{handle_clap_event::handle_clap_event, sync_main_to_audio::sync_main_to_audio},
 };
@@ -40,25 +47,34 @@ pub extern "C" fn get_info(plugin: *const clap_plugin_t, index: u32, information
 
     let mut new_information = unsafe { std::mem::zeroed::<clap_param_info_t>() };
     new_information.id = index;
-    new_information.flags = CLAP_PARAM_IS_AUTOMATABLE;
 
     match &param {
         AnyParameter::Cutoff { inner } => {
+            new_information.flags = CLAP_PARAM_IS_AUTOMATABLE;
             new_information.min_value = inner.behave.min;
             new_information.max_value = inner.behave.max;
             new_information.default_value = inner.behave.def;
             copy_cstr(&mut new_information.name, inner.name.as_bytes());
         }
         AnyParameter::XFeed { inner } => {
+            new_information.flags = CLAP_PARAM_IS_AUTOMATABLE;
             new_information.min_value = inner.behave.min;
             new_information.max_value = inner.behave.max;
             new_information.default_value = inner.behave.def;
             copy_cstr(&mut new_information.name, inner.name.as_bytes());
         }
         AnyParameter::Mix { inner } => {
+            new_information.flags = CLAP_PARAM_IS_AUTOMATABLE;
             new_information.min_value = inner.behave.min;
             new_information.max_value = inner.behave.max;
             new_information.default_value = inner.behave.def;
+            copy_cstr(&mut new_information.name, inner.name.as_bytes());
+        }
+        AnyParameter::CalibrationMode { inner } => {
+            new_information.flags = CLAP_PARAM_IS_STEPPED | CLAP_PARAM_IS_ENUM;
+            new_information.min_value = 0.0;
+            new_information.max_value = (inner.behave.options.len() - 1) as f64;
+            new_information.default_value = inner.behave.def as f64;
             copy_cstr(&mut new_information.name, inner.name.as_bytes());
         }
     }
@@ -100,7 +116,15 @@ pub extern "C" fn value_to_text(plugin: *const clap_plugin_t, id: clap_id, value
     let buffer = unsafe { std::slice::from_raw_parts_mut(display as *mut u8, size as usize) };
     let mut cursor = std::io::Cursor::new(buffer);
 
-    write!(cursor, "{:.2}\0", value).is_ok()
+    match id as usize {
+        Parameter::<Cutoff, Range>::ID => write!(cursor, "{:.0} Hz\0", value).is_ok(),
+        Parameter::<XFeed, Range>::ID  => write!(cursor, "{:.1} dB\0", value).is_ok(),
+        Parameter::<Mix, Range>::ID    => write!(cursor, "{:.0} %\0", value * 100.0).is_ok(),
+        _ => {
+            let label = CalibrationMode::label(value.round() as u8);
+            write!(cursor, "{}\0", label).is_ok()
+        }
+    }
 }
 
 // [main-thread]
@@ -113,12 +137,33 @@ pub extern "C" fn text_to_value(plugin: *const clap_plugin_t, _param_id: clap_id
     let Ok(s) = (unsafe { std::ffi::CStr::from_ptr(display) }).to_str() else {
         return false;
     };
+    let s = s.trim();
 
-    let Ok(parsed) = s.trim().parse::<f64>() else {
+    if _param_id as usize == Parameter::<CalibrationMode, Select>::ID {
+        let v = match s {
+            "Off"          => CalibrationMode::OFF as f64,
+            "Continuous"   => CalibrationMode::CONTINUOUS as f64,
+            "Intermittent" => CalibrationMode::INTERMITTENT as f64,
+            _ => return false,
+        };
+        unsafe { *value = v };
+        return true;
+    }
+
+    // Strip unit suffix — take only the numeric part before the first space.
+    let numeric = s.split_whitespace().next().unwrap_or(s);
+    let Ok(parsed) = numeric.parse::<f64>() else {
         return false;
     };
 
-    unsafe { *value = parsed };
+    // Mix is displayed as percentage (value * 100), so convert back to 0..1.
+    let result = if _param_id as usize == Parameter::<Mix, Range>::ID {
+        parsed / 100.0
+    } else {
+        parsed
+    };
+
+    unsafe { *value = result };
 
     true
 }

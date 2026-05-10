@@ -21,18 +21,13 @@ use dioxus_native_dom::DioxusDocument;
 use keyboard_types::Modifiers;
 use vello::Scene;
 
-const PARAM_WIDGETS: &[(&str, usize)] = &[
-    ("cutoff", Parameter::<Cutoff, Range>::ID),
-    ("feed", Parameter::<XFeed, Range>::ID),
-    ("mix", Parameter::<Mix, Range>::ID),
-];
-
 pub struct View {
     pub doc: DioxusDocument,
     pub app_state: Signal<AppState>,
     pub pointer: (f64, f64),
     pub element_at_pointer: Option<HitTarget>,
     pub held_buttons: MouseEventButtons,
+    pub widgets: &'static [&'static dyn Widget],
 }
 
 impl View {
@@ -65,12 +60,19 @@ impl View {
             inner.resolve(0.0);
         }
 
+        static WIDGETS: &[&dyn Widget] = &[
+            &Parameter::<Cutoff, Range>::new(),
+            &Parameter::<XFeed, Range>::new(),
+            &Parameter::<Mix, Range>::new(),
+        ];
+
         Self {
             doc,
             app_state,
             pointer: (0.0, 0.0),
             element_at_pointer: None,
             held_buttons: MouseEventButtons::None,
+            widgets: WIDGETS,
         }
     }
 
@@ -134,13 +136,15 @@ impl View {
         };
 
         let mut node_id = Some(hit.node_id);
+
         while let Some(id) = node_id {
-            for &(dom_id, param_id) in PARAM_WIDGETS {
-                if inner.get_element_by_id(dom_id) == Some(id) {
-                    self.element_at_pointer = Some(HitTarget::Param(param_id));
+            for widget in self.widgets {
+                if inner.get_element_by_id(widget.dom_id()) == Some(id) {
+                    self.element_at_pointer = Some(HitTarget::Param(widget.param_id()));
                     return;
                 }
             }
+
             node_id = inner.get_node(id).and_then(|n| n.parent);
         }
     }
@@ -189,21 +193,10 @@ impl View {
     }
 
     pub fn draw_widgets(&mut self, scene: &mut Scene, parameters_values: &[f64; PARAMS_COUNT]) {
-        self.draw_widget(
-            scene,
-            &Parameter::<Cutoff, Range>::new(),
-            parameters_values[Parameter::<Cutoff, Range>::ID],
-        );
-        self.draw_widget(
-            scene,
-            &Parameter::<XFeed, Range>::new(),
-            parameters_values[Parameter::<XFeed, Range>::ID],
-        );
-        self.draw_widget(
-            scene,
-            &Parameter::<Mix, Range>::new(),
-            parameters_values[Parameter::<Mix, Range>::ID],
-        );
+        for widget in self.widgets {
+            self.draw_widget(scene, *widget, parameters_values[widget.param_id()]);
+        }
+        // CalibrationMode renders as a dropdown — handled in the Dioxus component, not here.
     }
 
     pub fn update_app_state(&mut self, _state: &GUIShared, parameters_values: &[f64; PARAMS_COUNT]) {

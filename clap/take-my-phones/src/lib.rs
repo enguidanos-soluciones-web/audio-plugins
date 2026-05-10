@@ -17,6 +17,7 @@ mod helper;
 mod host_notifier;
 mod parameters;
 mod plugin;
+mod preset_factory;
 mod processors;
 mod state;
 mod version;

@@ -1,6 +1,7 @@
 use crate::channel::{Receiver, Sender};
 use crate::clap::*;
 use crate::dsp::bs2b::Bs2bState;
+use crate::dsp::calibration::Calibration;
 use crate::parameters::any::PARAMS_COUNT;
 use arc_swap::ArcSwap;
 use std::fmt::Debug;
@@ -13,6 +14,10 @@ pub enum GuiRequest {
     ResetParam(usize),
     /// User dragged a knob — main thread should apply the new parameter value.
     SetParam(usize, f64),
+    /// User started a drag or click gesture on a parameter.
+    BeginGesture(usize),
+    /// User ended a drag or click gesture on a parameter.
+    EndGesture(usize),
 }
 
 #[derive(Debug)]
@@ -23,9 +28,10 @@ pub enum ParamEvent {
 }
 
 #[derive(Debug)]
-pub struct ParamChange {
-    pub id: usize,
-    pub value: f64,
+pub enum ParamChange {
+    Value { id: usize, value: f64 },
+    GestureBegin { id: usize },
+    GestureEnd { id: usize },
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -41,6 +47,7 @@ pub struct AudioThreadState {
     pub output_buf: Vec<f64>,
 
     pub bs2b: Bs2bState,
+    pub cal: Calibration,
 
     pub daw_events: Sender<ParamEvent>,
     pub param_changes: Receiver<ParamChange>,
@@ -54,6 +61,7 @@ impl AudioThreadState {
         self.input_buf.fill(0.0);
         self.output_buf.fill(0.0);
         self.bs2b.reset();
+        self.cal.reset();
     }
 
     pub fn assert_audio_thread(&self) {

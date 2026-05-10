@@ -1,7 +1,8 @@
 pub mod any;
+pub mod calibration_mode;
 pub mod cutoff;
-pub mod xfeed;
 pub mod mix;
+pub mod xfeed;
 
 use std::marker::PhantomData;
 
@@ -18,6 +19,12 @@ pub struct Range {
     pub min: f64,
     pub max: f64,
     pub def: f64,
+}
+
+#[derive(Clone, Copy)]
+pub struct Select {
+    pub options: &'static [u8],
+    pub def: u8,
 }
 
 #[derive(Clone, Copy)]

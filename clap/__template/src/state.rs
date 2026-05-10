@@ -35,6 +35,8 @@ pub struct ParamSnapshot {
 
 pub struct AudioThreadState {
     pub host: *const clap_host_t,
+
+    #[allow(dead_code)]
     pub sample_rate: f64,
 
     pub input_buf: Vec<f64>,

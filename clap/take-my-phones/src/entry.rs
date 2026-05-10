@@ -1,4 +1,4 @@
-use crate::{clap::*, factory::PLUGIN_FACTORY, version::CLAP_VERSION_INIT};
+use crate::{clap::*, factory::PLUGIN_FACTORY, preset_factory::PRESET_DISCOVERY_FACTORY, version::CLAP_VERSION_INIT};
 use std::ffi::{CStr, c_char, c_void};
 
 #[unsafe(no_mangle)]
@@ -16,10 +16,13 @@ unsafe extern "C" fn entry_init(_plugin_path: *const c_char) -> bool {
 unsafe extern "C" fn entry_deinit() {}
 
 unsafe extern "C" fn entry_get_factory(factory_id: *const c_char) -> *const c_void {
-    unsafe {
-        if CStr::from_ptr(factory_id) == CLAP_PLUGIN_FACTORY_ID {
-            return &PLUGIN_FACTORY as *const _ as *const c_void;
-        }
+    let id = unsafe { CStr::from_ptr(factory_id) };
+
+    if id == CLAP_PLUGIN_FACTORY_ID {
+        return &PLUGIN_FACTORY as *const _ as *const c_void;
+    }
+    if id == CLAP_PRESET_DISCOVERY_FACTORY_ID || id == CLAP_PRESET_DISCOVERY_FACTORY_ID_COMPAT {
+        return &PRESET_DISCOVERY_FACTORY as *const _ as *const c_void;
     }
 
     std::ptr::null()

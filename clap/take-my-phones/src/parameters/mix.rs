@@ -17,12 +17,16 @@ pub struct Mix;
 impl Parameter<Mix, Range> {
     pub const ID: usize = 2;
 
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
             id: Self::ID,
             name: "Mix",
             gestures: PARAMETER_GESTURE_DRAG | PARAMETER_GESTURE_DOUBLE_CLICK,
-            behave: Range { min: 0.0, max: 1.0, def: 1.0 },
+            behave: Range {
+                min: 0.0,
+                max: 1.0,
+                def: 1.0,
+            },
             _marker_type: std::marker::PhantomData,
             _marker_behaviour: std::marker::PhantomData,
         }
@@ -51,7 +55,11 @@ impl Parameter<Mix, Range> {
 
 impl<'a> ParameterDraggable<'a, Mix, Range> {
     pub fn new(inner: &'a Parameter<Mix, Range>) -> Self {
-        Self { inner, _marker_type: std::marker::PhantomData, _marker_behaviour: std::marker::PhantomData }
+        Self {
+            inner,
+            _marker_type: std::marker::PhantomData,
+            _marker_behaviour: std::marker::PhantomData,
+        }
     }
 
     pub fn on_drag(&self, start_pos: (f64, f64), start_value: f64, current_pos: (f64, f64)) -> Option<ProposedParamChange> {
@@ -59,24 +67,33 @@ impl<'a> ParameterDraggable<'a, Mix, Range> {
         let delta = (start_pos.1 - current_pos.1) / SENSITIVITY;
         let normalized = (start_value + delta).clamp(0.0, 1.0);
         let value = self.inner.behave.min + normalized * (self.inner.behave.max - self.inner.behave.min);
-        Some(ProposedParamChange { index: self.inner.id, value })
+        Some(ProposedParamChange {
+            index: self.inner.id,
+            value,
+        })
     }
 }
 
 impl<'a> ParameterClickable<'a, Mix, Range> {
     pub fn new(inner: &'a Parameter<Mix, Range>) -> Self {
-        Self { inner, _marker_type: std::marker::PhantomData, _marker_behaviour: std::marker::PhantomData }
+        Self {
+            inner,
+            _marker_type: std::marker::PhantomData,
+            _marker_behaviour: std::marker::PhantomData,
+        }
     }
 
     pub fn on_double_click(&self) -> Option<ProposedParamChange> {
-        Some(ProposedParamChange { index: self.inner.id, value: self.inner.behave.def })
+        Some(ProposedParamChange {
+            index: self.inner.id,
+            value: self.inner.behave.def,
+        })
     }
 }
 
 impl Widget for Parameter<Mix, Range> {
-    fn dom_id(&self) -> &'static str {
-        "mix"
-    }
+    fn dom_id(&self) -> &'static str { "mix" }
+    fn param_id(&self) -> usize { self.id }
 
     fn draw(&self, scene: &mut Scene, coordinates: (f64, f64), dimensions: (f64, f64), _cursor: (f64, f64), value: f64) {
         let (x, y) = coordinates;
@@ -92,16 +109,40 @@ impl Widget for Parameter<Mix, Range> {
         let center = Point::new(cx, cy);
 
         scene.fill(Fill::NonZero, Affine::IDENTITY, colors::neutral_600, None, &Circle::new(center, r));
-        scene.stroke(&Stroke::new(2.0), Affine::IDENTITY, colors::neutral_800, None, &arc_path(cx, cy, r - 7.0, KNOB_START, KNOB_SWEEP));
+        scene.stroke(
+            &Stroke::new(2.0),
+            Affine::IDENTITY,
+            colors::neutral_800,
+            None,
+            &arc_path(cx, cy, r - 7.0, KNOB_START, KNOB_SWEEP),
+        );
 
         if normalized > 0.001 {
-            scene.stroke(&Stroke::new(2.0), Affine::IDENTITY, colors::amber_500, None, &arc_path(cx, cy, r - 7.0, KNOB_START, normalized * KNOB_SWEEP));
+            scene.stroke(
+                &Stroke::new(2.0),
+                Affine::IDENTITY,
+                colors::amber_500,
+                None,
+                &arc_path(cx, cy, r - 7.0, KNOB_START, normalized * KNOB_SWEEP),
+            );
         }
 
         let angle = KNOB_START + normalized * KNOB_SWEEP;
         let ix = cx + (r - 12.0) * angle.cos();
         let iy = cy + (r - 12.0) * angle.sin();
-        scene.stroke(&Stroke::new(1.5), Affine::IDENTITY, colors::white, None, &Line::new(center, Point::new(ix, iy)));
-        scene.stroke(&Stroke::new(1.0), Affine::IDENTITY, colors::neutral_900, None, &full_circle_path(cx, cy, r));
+        scene.stroke(
+            &Stroke::new(1.5),
+            Affine::IDENTITY,
+            colors::white,
+            None,
+            &Line::new(center, Point::new(ix, iy)),
+        );
+        scene.stroke(
+            &Stroke::new(1.0),
+            Affine::IDENTITY,
+            colors::neutral_900,
+            None,
+            &full_circle_path(cx, cy, r),
+        );
     }
 }

@@ -44,8 +44,8 @@ use crate::{
     channel::channel,
     clap::*,
     descriptor::PLUGIN_DESCRIPTOR,
-    dsp::bs2b::Bs2bState,
-    extensions::{audio_ports::AUDIO_PORTS_EXT, gui::GUI_EXT, parameters::PARAMETERS_EXT, state::STATE_EXT},
+    dsp::{bs2b::Bs2bState, calibration::Calibration},
+    extensions::{audio_ports::AUDIO_PORTS_EXT, gui::GUI_EXT, parameters::PARAMETERS_EXT, preset_load::PRESET_LOAD_EXT, state::STATE_EXT},
     gestures::click::ActiveClick,
     parameters::any::PARAMS_COUNT,
     plugin,
@@ -146,6 +146,7 @@ pub unsafe extern "C" fn activate(plugin: *const clap_plugin, sample_rate: f64, 
         host: plugin_ref.host,
         sample_rate,
         bs2b: Bs2bState::new(700.0, 4.5, sample_rate),
+        cal: Calibration::new(sample_rate),
         input_buf: vec![0.0; max_frames_count as usize],
         output_buf: vec![0.0; max_frames_count as usize],
         param_snapshot: Arc::clone(&main_thread.param_snapshot),
@@ -180,7 +181,7 @@ pub unsafe extern "C" fn deactivate(plugin: *const clap_plugin) {
             ParamEvent::Ack => {}
             ParamEvent::Nack { id } => {
                 let value = main_thread.param_snapshot.load().values[id];
-                let _ = main_thread.param_changes.push(ParamChange { id, value });
+                let _ = main_thread.param_changes.push(ParamChange::Value { id, value });
             }
         }
     }
@@ -234,6 +235,9 @@ pub unsafe extern "C" fn get_extension(_plugin: *const clap_plugin, id: *const c
     if unsafe { CStr::from_ptr(id) } == CLAP_EXT_GUI {
         return &GUI_EXT as *const _ as *const c_void;
     }
+    if unsafe { CStr::from_ptr(id) } == CLAP_EXT_PRESET_LOAD || unsafe { CStr::from_ptr(id) } == CLAP_EXT_PRESET_LOAD_COMPAT {
+        return &PRESET_LOAD_EXT as *const _ as *const c_void;
+    }
 
     std::ptr::null()
 }
@@ -258,7 +262,7 @@ pub unsafe extern "C" fn on_main_thread(plugin: *const clap_plugin) {
             ParamEvent::Ack => {}
             ParamEvent::Nack { id } => {
                 let value = new_snapshot.values[id];
-                let _ = main.param_changes.push(ParamChange { id, value });
+                let _ = main.param_changes.push(ParamChange::Value { id, value });
             }
         }
     }
@@ -266,22 +270,27 @@ pub unsafe extern "C" fn on_main_thread(plugin: *const clap_plugin) {
     // 3. GUI requests
     while let Some(request) = main.gui_requests.pop() {
         match request {
+            GuiRequest::BeginGesture(id) => {
+                let _ = main.param_changes.push(ParamChange::GestureBegin { id });
+            }
+            GuiRequest::EndGesture(id) => {
+                let _ = main.param_changes.push(ParamChange::GestureEnd { id });
+            }
             GuiRequest::ResetParam(id) => {
                 let Some(change) = ActiveClick::from_index(id).and_then(|c| c.on_double_click()) else {
                     continue;
                 };
+                let _ = main.param_changes.push(ParamChange::GestureBegin { id: change.index });
                 new_snapshot.values[change.index] = change.value;
                 snapshot_dirty = true;
-                let _ = main.param_changes.push(ParamChange {
-                    id: change.index,
-                    value: change.value,
-                });
+                let _ = main.param_changes.push(ParamChange::Value { id: change.index, value: change.value });
+                let _ = main.param_changes.push(ParamChange::GestureEnd { id: change.index });
             }
             GuiRequest::SetParam(id, value) => {
                 if id < new_snapshot.values.len() {
                     new_snapshot.values[id] = value;
                     snapshot_dirty = true;
-                    let _ = main.param_changes.push(ParamChange { id, value });
+                    let _ = main.param_changes.push(ParamChange::Value { id, value });
                 }
             }
         }
@@ -335,16 +344,16 @@ pub unsafe extern "C" fn process(plugin: *const clap_plugin, process: *const cla
     let nframes = process_ref.frames_count as usize;
 
     if !audio_inputs.data64.is_null() && !audio_outputs.data64.is_null() {
-        let in_l  = unsafe { *audio_inputs.data64.offset(0) };
-        let in_r  = unsafe { *audio_inputs.data64.offset(1) };
+        let in_l = unsafe { *audio_inputs.data64.offset(0) };
+        let in_r = unsafe { *audio_inputs.data64.offset(1) };
         let out_l = unsafe { *audio_outputs.data64.offset(0) };
         let out_r = unsafe { *audio_outputs.data64.offset(1) };
         render_audio_f64(audio_thread, in_l, in_r, out_l, out_r, nframes);
         return CLAP_PROCESS_CONTINUE as clap_process_status;
     }
     if !audio_inputs.data32.is_null() && !audio_outputs.data32.is_null() {
-        let in_l  = unsafe { *audio_inputs.data32.offset(0) };
-        let in_r  = unsafe { *audio_inputs.data32.offset(1) };
+        let in_l = unsafe { *audio_inputs.data32.offset(0) };
+        let in_r = unsafe { *audio_inputs.data32.offset(1) };
         let out_l = unsafe { *audio_outputs.data32.offset(0) };
         let out_r = unsafe { *audio_outputs.data32.offset(1) };
         render_audio_f32(audio_thread, in_l, in_r, out_l, out_r, nframes);
