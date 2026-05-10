@@ -100,7 +100,7 @@ jobs:
           codesign --force --deep --sign - "$BUNDLE"
 
       - name: Install clap-validator
-        run: cargo install clap-validator
+        run: cargo install --git https://github.com/free-audio/clap-validator
 
       - name: Validate .clap
         run: clap-validator validate ${{ env.PLUGIN_NAME }}.clap
@@ -174,7 +174,7 @@ jobs:
         run: cp target/release/lib${{ env.PLUGIN_NAME }}.so ${{ env.PLUGIN_NAME }}.clap
 
       - name: Install clap-validator
-        run: cargo install clap-validator
+        run: cargo install --git https://github.com/free-audio/clap-validator
 
       - name: Validate .clap
         run: clap-validator validate ${{ env.PLUGIN_NAME }}.clap
@@ -241,7 +241,7 @@ jobs:
         run: Copy-Item "target\release\${{ env.PLUGIN_NAME }}.dll" "${{ env.PLUGIN_NAME }}.clap"
 
       - name: Install clap-validator
-        run: cargo install clap-validator
+        run: cargo install --git https://github.com/free-audio/clap-validator
 
       - name: Validate .clap
         run: clap-validator validate ${{ env.PLUGIN_NAME }}.clap
