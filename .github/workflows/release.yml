@@ -248,6 +248,9 @@ jobs:
         shell: pwsh
         run: Compress-Archive -Path "${{ env.PLUGIN_NAME }}.clap" -DestinationPath "${{ github.ref_name }}-windows-x86_64.zip"
 
+      - name: Install NSIS
+        run: choco install nsis --no-progress -y
+
       - name: Build NSIS installer
         shell: pwsh
         run: |
@@ -255,7 +258,7 @@ jobs:
           $pluginFile = Join-Path $PWD "${{ env.PLUGIN_NAME }}.clap"
           $outFile    = Join-Path $PWD "${{ github.ref_name }}-windows-x86_64.exe"
           $script     = Join-Path $PWD "clap" "${{ env.CRATE_NAME }}" "installer" "windows.nsi"
-          makensis /DPLUGIN_FILE="$pluginFile" /DDISPLAY_NAME="Take My Headphones" /DVERSION="$version" /DOUTFILE="$outFile" $script
+          & "C:\Program Files (x86)\NSIS\makensis.exe" /DPLUGIN_FILE="$pluginFile" /DDISPLAY_NAME="Take My Headphones" /DVERSION="$version" /DOUTFILE="$outFile" $script
 
       - uses: actions/upload-artifact@v4
         with:
