@@ -9,8 +9,6 @@ Functional emulation of the Matrix section of the SPL Phonitor 3 and more.
 ### Releases
 
 ```bash
-cargo release patch -p take-my-headphones --dry-run
-
 # patch: 0.1.0 → 0.1.1
 cargo release patch -p take-my-headphones
 

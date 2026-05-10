@@ -30,6 +30,8 @@ jobs:
           echo "PLUGIN_NAME=$PLUGIN_NAME" >> $GITHUB_ENV
           echo "BUNDLE_ID=com.enguidanosweb.${BUNDLE_ID_SUFFIX}" >> $GITHUB_ENV
 
+      - uses: dtolnay/rust-toolchain@nightly
+
       - name: Install Rust targets
         run: |
           rustup target add aarch64-apple-darwin
@@ -130,6 +132,8 @@ jobs:
           echo "CRATE_NAME=$CRATE_NAME"   >> $GITHUB_ENV
           echo "PLUGIN_NAME=$PLUGIN_NAME" >> $GITHUB_ENV
 
+      - uses: dtolnay/rust-toolchain@nightly
+
       - name: Install system dependencies
         run: |
           sudo apt-get update
@@ -202,6 +206,8 @@ jobs:
           PLUGIN_NAME="${CRATE_NAME//-/_}"
           echo "CRATE_NAME=$CRATE_NAME"   >> $GITHUB_ENV
           echo "PLUGIN_NAME=$PLUGIN_NAME" >> $GITHUB_ENV
+
+      - uses: dtolnay/rust-toolchain@nightly
 
       - name: Cache Rust
         uses: actions/cache@v4
