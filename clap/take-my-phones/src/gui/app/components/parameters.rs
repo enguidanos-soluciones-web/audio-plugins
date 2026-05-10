@@ -1,7 +1,7 @@
 use crate::{
     gestures::drag::ActiveDrag,
     gui::app::{dispatcher::Dispatcher, state::AppState},
-    parameters::{Parameter, Range, blend::Blend, input_gain::InputGain, output_gain::OutputGain},
+    parameters::{Parameter, Range, cutoff::Cutoff, feed::Feed, mix::Mix},
     state::GuiRequest,
 };
 use dioxus::prelude::*;
@@ -13,79 +13,79 @@ pub fn Parameters() -> Element {
 
     let mut drag = consume_context::<Signal<Option<ActiveDrag>>>();
 
-    let input_db = format!("{:.1} db", state.read().params[Parameter::<InputGain, Range>::ID]);
-    let output_db = format!("{:.1} db", state.read().params[Parameter::<OutputGain, Range>::ID]);
-    let blend_val = format!("{:.0}%", state.read().params[Parameter::<Blend, Range>::ID] * 100.0);
+    let cutoff_val = Parameter::<Cutoff, Range>::format_value(state.read().params[Parameter::<Cutoff, Range>::ID]);
+    let feed_val   = Parameter::<Feed,   Range>::format_value(state.read().params[Parameter::<Feed,   Range>::ID]);
+    let mix_val    = Parameter::<Mix,    Range>::format_value(state.read().params[Parameter::<Mix,    Range>::ID]);
 
     rsx! {
         div {
             class: "flex-1 flex items-center justify-center gap-10",
 
+            div {
+                class: "flex flex-col items-center gap-2.5",
+                span { class: "text-amber-500 text-sm", "{cutoff_val}" }
                 div {
-                    class: "flex flex-col items-center gap-2.5",
-                    span { id: "blend-val", class: "text-amber-500 text-sm", "{blend_val}" }
-                    div {
-                        id: "blend",
-                        class: "w-20 h-20",
-                        onmousedown: {
-                            let state = state.clone();
-                            move |e| {
-                                let coords = e.data().client_coordinates();
-                                let raw = state.read().params[Parameter::<Blend, Range>::ID];
-                                drag.set(ActiveDrag::from_index(Parameter::<Blend, Range>::ID, coords.x, coords.y, raw));
-                            }
-                        },
-                        ondoubleclick: {
-                            let dispatcher = dispatcher.clone();
-                            move |_| dispatcher(GuiRequest::ResetParam(Parameter::<Blend, Range>::ID))
-                        },
-                    }
-                    span { class: "text-xs font-semibold tracking-widest uppercase text-neutral-400", "Blend" }
+                    id: "cutoff",
+                    class: "w-20 h-20",
+                    onmousedown: {
+                        let state = state.clone();
+                        move |e| {
+                            let coords = e.data().client_coordinates();
+                            let raw = state.read().params[Parameter::<Cutoff, Range>::ID];
+                            drag.set(ActiveDrag::from_index(Parameter::<Cutoff, Range>::ID, coords.x, coords.y, raw));
+                        }
+                    },
+                    ondoubleclick: {
+                        let dispatcher = dispatcher.clone();
+                        move |_| dispatcher(GuiRequest::ResetParam(Parameter::<Cutoff, Range>::ID))
+                    },
                 }
+                span { class: "text-xs font-semibold tracking-widest uppercase text-neutral-400", "Cutoff" }
+            }
 
+            div {
+                class: "flex flex-col items-center gap-2.5",
+                span { class: "text-amber-500 text-sm", "{feed_val}" }
                 div {
-                    class: "flex flex-col items-center gap-2.5",
-                    span { id: "input-gain-db", class: "text-amber-500 text-sm", "{input_db}" }
-                    div {
-                        id: "input-gain",
-                        class: "w-20 h-20",
-                        onmousedown: {
-                            let state = state.clone();
-                            move |e| {
-                                let coords = e.data().client_coordinates();
-                                let raw = state.read().params[Parameter::<InputGain, Range>::ID];
-                                drag.set(ActiveDrag::from_index(Parameter::<InputGain, Range>::ID, coords.x, coords.y, raw));
-                            }
-                        },
-                        ondoubleclick: {
-                            let dispatcher = dispatcher.clone();
-                            move |_| dispatcher(GuiRequest::ResetParam(Parameter::<InputGain, Range>::ID))
-                        },
-                    }
-                    span { class: "text-xs font-semibold tracking-widest uppercase text-neutral-400", "Gain" }
+                    id: "feed",
+                    class: "w-20 h-20",
+                    onmousedown: {
+                        let state = state.clone();
+                        move |e| {
+                            let coords = e.data().client_coordinates();
+                            let raw = state.read().params[Parameter::<Feed, Range>::ID];
+                            drag.set(ActiveDrag::from_index(Parameter::<Feed, Range>::ID, coords.x, coords.y, raw));
+                        }
+                    },
+                    ondoubleclick: {
+                        let dispatcher = dispatcher.clone();
+                        move |_| dispatcher(GuiRequest::ResetParam(Parameter::<Feed, Range>::ID))
+                    },
                 }
+                span { class: "text-xs font-semibold tracking-widest uppercase text-neutral-400", "Feed" }
+            }
 
+            div {
+                class: "flex flex-col items-center gap-2.5",
+                span { class: "text-amber-500 text-sm", "{mix_val}" }
                 div {
-                    class: "flex flex-col items-center gap-2.5",
-                    span { id: "output-gain-db", class: "text-amber-500 text-sm", "{output_db}" }
-                    div {
-                        id: "output-gain",
-                        class: "w-20 h-20",
-                        onmousedown: {
-                            let state = state.clone();
-                            move |e| {
-                                let coords = e.data().client_coordinates();
-                                let raw = state.read().params[Parameter::<OutputGain, Range>::ID];
-                                drag.set(ActiveDrag::from_index(Parameter::<OutputGain, Range>::ID, coords.x, coords.y, raw));
-                            }
-                        },
-                        ondoubleclick: {
-                            let dispatcher = dispatcher.clone();
-                            move |_| dispatcher(GuiRequest::ResetParam(Parameter::<OutputGain, Range>::ID))
-                        },
-                    }
-                    span { class: "text-xs font-semibold tracking-widest uppercase text-neutral-400", "Master" }
+                    id: "mix",
+                    class: "w-20 h-20",
+                    onmousedown: {
+                        let state = state.clone();
+                        move |e| {
+                            let coords = e.data().client_coordinates();
+                            let raw = state.read().params[Parameter::<Mix, Range>::ID];
+                            drag.set(ActiveDrag::from_index(Parameter::<Mix, Range>::ID, coords.x, coords.y, raw));
+                        }
+                    },
+                    ondoubleclick: {
+                        let dispatcher = dispatcher.clone();
+                        move |_| dispatcher(GuiRequest::ResetParam(Parameter::<Mix, Range>::ID))
+                    },
                 }
+                span { class: "text-xs font-semibold tracking-widest uppercase text-neutral-400", "Mix" }
+            }
         }
     }
 }

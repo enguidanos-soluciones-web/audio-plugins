@@ -4,7 +4,7 @@ use crate::{
         app::{dispatcher::Dispatcher, layout::Layout, state::AppState},
         widget::Widget,
     },
-    parameters::{Parameter, Range, any::PARAMS_COUNT, blend::Blend, input_gain::InputGain, output_gain::OutputGain},
+    parameters::{Parameter, Range, any::PARAMS_COUNT, cutoff::Cutoff, feed::Feed, mix::Mix},
     state::GUIShared,
 };
 use anyrender_vello::VelloScenePainter;
@@ -22,9 +22,9 @@ use keyboard_types::Modifiers;
 use vello::Scene;
 
 const PARAM_WIDGETS: &[(&str, usize)] = &[
-    ("input-gain", Parameter::<InputGain, Range>::ID),
-    ("output-gain", Parameter::<OutputGain, Range>::ID),
-    ("blend", Parameter::<Blend, Range>::ID),
+    ("cutoff", Parameter::<Cutoff, Range>::ID),
+    ("feed",   Parameter::<Feed,   Range>::ID),
+    ("mix",    Parameter::<Mix,    Range>::ID),
 ];
 
 pub struct View {
@@ -189,23 +189,9 @@ impl View {
     }
 
     pub fn draw_widgets(&mut self, scene: &mut Scene, parameters_values: &[f64; PARAMS_COUNT]) {
-        self.draw_widget(
-            scene,
-            &Parameter::<InputGain, Range>::new(),
-            parameters_values[Parameter::<InputGain, Range>::ID],
-        );
-
-        self.draw_widget(
-            scene,
-            &Parameter::<OutputGain, Range>::new(),
-            parameters_values[Parameter::<OutputGain, Range>::ID],
-        );
-
-        self.draw_widget(
-            scene,
-            &Parameter::<Blend, Range>::new(),
-            parameters_values[Parameter::<Blend, Range>::ID],
-        );
+        self.draw_widget(scene, &Parameter::<Cutoff, Range>::new(), parameters_values[Parameter::<Cutoff, Range>::ID]);
+        self.draw_widget(scene, &Parameter::<Feed,   Range>::new(), parameters_values[Parameter::<Feed,   Range>::ID]);
+        self.draw_widget(scene, &Parameter::<Mix,    Range>::new(), parameters_values[Parameter::<Mix,    Range>::ID]);
     }
 
     pub fn update_app_state(&mut self, _state: &GUIShared, parameters_values: &[f64; PARAMS_COUNT]) {

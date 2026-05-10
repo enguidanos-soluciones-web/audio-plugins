@@ -1,58 +1,62 @@
 use crate::{
-    helper::{DecibelConversion, db_to_linear},
-    parameters::{Parameter, Range, blend::Blend, input_gain::InputGain, output_gain::OutputGain},
+    parameters::{Parameter, Range, cutoff::Cutoff, feed::Feed, mix::Mix},
     state::AudioThreadState,
 };
 
-pub fn render_audio_f64(audio_thread: &mut AudioThreadState, input: *const f64, output: *mut f64, nframes: usize) {
+pub fn render_audio_f64(
+    audio_thread: &mut AudioThreadState,
+    in_l: *const f64,
+    in_r: *const f64,
+    out_l: *mut f64,
+    out_r: *mut f64,
+    nframes: usize,
+) {
     audio_thread.assert_audio_thread();
 
     let snapshot = audio_thread.param_snapshot.load();
+    let cutoff = snapshot.values[Parameter::<Cutoff, Range>::ID];
+    let feed   = snapshot.values[Parameter::<Feed,   Range>::ID];
+    let mix    = snapshot.values[Parameter::<Mix,    Range>::ID];
 
-    let input_gain = db_to_linear(snapshot.values[Parameter::<InputGain, Range>::ID], DecibelConversion::Amplitude);
-    let output_gain = db_to_linear(snapshot.values[Parameter::<OutputGain, Range>::ID], DecibelConversion::Amplitude);
+    audio_thread.bs2b.update_coeffs(cutoff, feed, audio_thread.sample_rate);
 
-    let blend = snapshot.values[Parameter::<Blend, Range>::ID];
-
-    let input_slice = unsafe { std::slice::from_raw_parts(input, nframes) };
-    let output_slice = unsafe { std::slice::from_raw_parts_mut(output, nframes) };
-
-    for i in 0..nframes {
-        audio_thread.input_buf[i] = input_slice[i] * input_gain;
-    }
+    let in_l  = unsafe { std::slice::from_raw_parts(in_l, nframes) };
+    let in_r  = unsafe { std::slice::from_raw_parts(in_r, nframes) };
+    let out_l = unsafe { std::slice::from_raw_parts_mut(out_l, nframes) };
+    let out_r = unsafe { std::slice::from_raw_parts_mut(out_r, nframes) };
 
     for i in 0..nframes {
-        let dc_filtered = audio_thread.dc_filter.process_sample(audio_thread.output_buf[i]);
-
-        let wet = dc_filtered * output_gain;
-        let dry = input_slice[i];
-
-        output_slice[i] = Parameter::<Blend, Range>::mix(dry, wet, blend);
+        let (wet_l, wet_r) = audio_thread.bs2b.process(in_l[i], in_r[i]);
+        out_l[i] = mix * wet_l + (1.0 - mix) * in_l[i];
+        out_r[i] = mix * wet_r + (1.0 - mix) * in_r[i];
     }
 }
 
-pub fn render_audio_f32(audio_thread: &mut AudioThreadState, input: *const f32, output: *mut f32, nframes: usize) {
+pub fn render_audio_f32(
+    audio_thread: &mut AudioThreadState,
+    in_l: *const f32,
+    in_r: *const f32,
+    out_l: *mut f32,
+    out_r: *mut f32,
+    nframes: usize,
+) {
     audio_thread.assert_audio_thread();
 
     let snapshot = audio_thread.param_snapshot.load();
+    let cutoff = snapshot.values[Parameter::<Cutoff, Range>::ID];
+    let feed   = snapshot.values[Parameter::<Feed,   Range>::ID];
+    let mix    = snapshot.values[Parameter::<Mix,    Range>::ID];
 
-    let input_gain = db_to_linear(snapshot.values[Parameter::<InputGain, Range>::ID], DecibelConversion::Amplitude);
-    let output_gain = db_to_linear(snapshot.values[Parameter::<OutputGain, Range>::ID], DecibelConversion::Amplitude);
-    let blend = snapshot.values[Parameter::<Blend, Range>::ID];
+    audio_thread.bs2b.update_coeffs(cutoff, feed, audio_thread.sample_rate);
 
-    let input_slice = unsafe { std::slice::from_raw_parts(input, nframes) };
-    let output_slice = unsafe { std::slice::from_raw_parts_mut(output, nframes) };
+    let in_l  = unsafe { std::slice::from_raw_parts(in_l, nframes) };
+    let in_r  = unsafe { std::slice::from_raw_parts(in_r, nframes) };
+    let out_l = unsafe { std::slice::from_raw_parts_mut(out_l, nframes) };
+    let out_r = unsafe { std::slice::from_raw_parts_mut(out_r, nframes) };
 
     for i in 0..nframes {
-        audio_thread.input_buf[i] = input_slice[i] as f64 * input_gain;
-    }
-
-    for i in 0..nframes {
-        let dc_filtered = audio_thread.dc_filter.process_sample(audio_thread.output_buf[i]);
-
-        let wet = dc_filtered * output_gain;
-        let dry = input_slice[i];
-
-        output_slice[i] = Parameter::<Blend, Range>::mix(dry as f64, wet, blend) as f32;
+        let (wet_l, wet_r) = audio_thread.bs2b.process(in_l[i] as f64, in_r[i] as f64);
+        out_l[i] = (mix * wet_l + (1.0 - mix) * in_l[i] as f64) as f32;
+        out_r[i] = (mix * wet_r + (1.0 - mix) * in_r[i] as f64) as f32;
     }
 }

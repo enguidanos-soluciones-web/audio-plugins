@@ -34,9 +34,9 @@ pub unsafe extern "C" fn get_audio_ports(
     let info_ref = unsafe { info.as_mut_unchecked() };
 
     info_ref.id = if is_input { 0 } else { 1 };
-    info_ref.channel_count = 1;
+    info_ref.channel_count = 2;
     info_ref.flags = CLAP_AUDIO_PORT_IS_MAIN | CLAP_AUDIO_PORT_SUPPORTS_64BITS | CLAP_AUDIO_PORT_PREFERS_64BITS;
-    info_ref.port_type = CLAP_PORT_MONO.as_ptr();
+    info_ref.port_type = CLAP_PORT_STEREO.as_ptr();
     info_ref.in_place_pair = CLAP_INVALID_ID;
 
     copy_cstr(&mut info_ref.name, if is_input { b"Audio Input" } else { b"Audio Output" });

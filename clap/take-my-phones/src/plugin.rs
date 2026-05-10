@@ -44,7 +44,7 @@ use crate::{
     channel::channel,
     clap::*,
     descriptor::PLUGIN_DESCRIPTOR,
-    dsp::dc_filter::DcFilter,
+    dsp::bs2b::Bs2bState,
     extensions::{audio_ports::AUDIO_PORTS_EXT, gui::GUI_EXT, parameters::PARAMETERS_EXT, state::STATE_EXT},
     gestures::click::ActiveClick,
     parameters::any::PARAMS_COUNT,
@@ -145,7 +145,7 @@ pub unsafe extern "C" fn activate(plugin: *const clap_plugin, sample_rate: f64, 
     plugin_ref.audio_thread = Some(AudioThreadState {
         host: plugin_ref.host,
         sample_rate,
-        dc_filter: DcFilter::new(20.0, sample_rate),
+        bs2b: Bs2bState::new(700.0, 4.5, sample_rate),
         input_buf: vec![0.0; max_frames_count as usize],
         output_buf: vec![0.0; max_frames_count as usize],
         param_snapshot: Arc::clone(&main_thread.param_snapshot),
@@ -335,15 +335,19 @@ pub unsafe extern "C" fn process(plugin: *const clap_plugin, process: *const cla
     let nframes = process_ref.frames_count as usize;
 
     if !audio_inputs.data64.is_null() && !audio_outputs.data64.is_null() {
-        let input = unsafe { *audio_inputs.data64.offset(0) };
-        let output = unsafe { *audio_outputs.data64.offset(0) };
-        render_audio_f64(audio_thread, input, output, nframes);
+        let in_l  = unsafe { *audio_inputs.data64.offset(0) };
+        let in_r  = unsafe { *audio_inputs.data64.offset(1) };
+        let out_l = unsafe { *audio_outputs.data64.offset(0) };
+        let out_r = unsafe { *audio_outputs.data64.offset(1) };
+        render_audio_f64(audio_thread, in_l, in_r, out_l, out_r, nframes);
         return CLAP_PROCESS_CONTINUE as clap_process_status;
     }
     if !audio_inputs.data32.is_null() && !audio_outputs.data32.is_null() {
-        let input = unsafe { *audio_inputs.data32.offset(0) };
-        let output = unsafe { *audio_outputs.data32.offset(0) };
-        render_audio_f32(audio_thread, input, output, nframes);
+        let in_l  = unsafe { *audio_inputs.data32.offset(0) };
+        let in_r  = unsafe { *audio_inputs.data32.offset(1) };
+        let out_l = unsafe { *audio_outputs.data32.offset(0) };
+        let out_r = unsafe { *audio_outputs.data32.offset(1) };
+        render_audio_f32(audio_thread, in_l, in_r, out_l, out_r, nframes);
         return CLAP_PROCESS_CONTINUE as clap_process_status;
     }
 

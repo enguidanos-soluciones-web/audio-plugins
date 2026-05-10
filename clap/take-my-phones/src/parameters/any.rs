@@ -1,12 +1,12 @@
 use super::{Parameter, Range};
-use crate::parameters::{blend::Blend, input_gain::InputGain, output_gain::OutputGain};
+use crate::parameters::{cutoff::Cutoff, feed::Feed, mix::Mix};
 
 pub const PARAMS_COUNT: usize = 3;
 
 pub enum AnyParameter {
-    InputGain { inner: Parameter<InputGain, Range> },
-    OutputGain { inner: Parameter<OutputGain, Range> },
-    Blend { inner: Parameter<Blend, Range> },
+    Cutoff  { inner: Parameter<Cutoff, Range> },
+    Feed    { inner: Parameter<Feed,   Range> },
+    Mix     { inner: Parameter<Mix,    Range> },
 }
 
 impl TryFrom<usize> for AnyParameter {
@@ -14,15 +14,9 @@ impl TryFrom<usize> for AnyParameter {
 
     fn try_from(id: usize) -> Result<Self, Self::Error> {
         match id {
-            Parameter::<InputGain, Range>::ID => Ok(AnyParameter::InputGain {
-                inner: Parameter::<InputGain, Range>::new(),
-            }),
-            Parameter::<OutputGain, Range>::ID => Ok(AnyParameter::OutputGain {
-                inner: Parameter::<OutputGain, Range>::new(),
-            }),
-            Parameter::<Blend, Range>::ID => Ok(AnyParameter::Blend {
-                inner: Parameter::<Blend, Range>::new(),
-            }),
+            Parameter::<Cutoff, Range>::ID => Ok(AnyParameter::Cutoff { inner: Parameter::<Cutoff, Range>::new() }),
+            Parameter::<Feed,   Range>::ID => Ok(AnyParameter::Feed   { inner: Parameter::<Feed,   Range>::new() }),
+            Parameter::<Mix,    Range>::ID => Ok(AnyParameter::Mix    { inner: Parameter::<Mix,    Range>::new() }),
             _ => Err(()),
         }
     }

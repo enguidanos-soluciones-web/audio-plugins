@@ -1,6 +1,6 @@
 use crate::channel::{Receiver, Sender};
 use crate::clap::*;
-use crate::dsp::dc_filter::DcFilter;
+use crate::dsp::bs2b::Bs2bState;
 use crate::parameters::any::PARAMS_COUNT;
 use arc_swap::ArcSwap;
 use std::fmt::Debug;
@@ -40,7 +40,7 @@ pub struct AudioThreadState {
     pub input_buf: Vec<f64>,
     pub output_buf: Vec<f64>,
 
-    pub dc_filter: DcFilter,
+    pub bs2b: Bs2bState,
 
     pub daw_events: Sender<ParamEvent>,
     pub param_changes: Receiver<ParamChange>,
@@ -53,7 +53,7 @@ impl AudioThreadState {
     pub fn reset(&mut self) {
         self.input_buf.fill(0.0);
         self.output_buf.fill(0.0);
-        self.dc_filter.reset();
+        self.bs2b.reset();
     }
 
     pub fn assert_audio_thread(&self) {
