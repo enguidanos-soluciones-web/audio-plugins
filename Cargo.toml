@@ -5,6 +5,10 @@ members = [
     "clap/take-my-headphones"
 ]
 
+[workspace.package]
+authors = ["Cristian A. Enguídanos Nebot <cristian.enguidanos.nebot@gmail.com>"]
+license = "GPL-3.0"
+
 [profile.release]
 strip = "symbols"
 lto = "fat"
