@@ -92,8 +92,12 @@ impl<'a> ParameterClickable<'a, XFeed, Range> {
 }
 
 impl Widget for Parameter<XFeed, Range> {
-    fn dom_id(&self) -> &'static str { "xfeed" }
-    fn param_id(&self) -> usize { self.id }
+    fn dom_id(&self) -> &'static str {
+        "xfeed"
+    }
+    fn param_id(&self) -> usize {
+        self.id
+    }
 
     fn draw(&self, scene: &mut Scene, coordinates: (f64, f64), dimensions: (f64, f64), _cursor: (f64, f64), value: f64) {
         let (x, y) = coordinates;

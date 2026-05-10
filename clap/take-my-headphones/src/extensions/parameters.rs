@@ -3,8 +3,8 @@ use crate::{
     helper::copy_cstr,
     parameters::{
         Parameter, Range, Select,
-        any::{AnyParameter, PARAMS_COUNT},
         angle::Angle,
+        any::{AnyParameter, PARAMS_COUNT},
         calibration_mode::CalibrationMode,
         center::Center,
         cutoff::Cutoff,
@@ -167,12 +167,12 @@ pub extern "C" fn value_to_text(plugin: *const clap_plugin_t, id: clap_id, value
 
     match id as usize {
         Parameter::<Cutoff, Range>::ID => write!(cursor, "{:.0} Hz\0", value).is_ok(),
-        Parameter::<XFeed, Range>::ID  => write!(cursor, "{:.1} dB\0", value).is_ok(),
+        Parameter::<XFeed, Range>::ID => write!(cursor, "{:.1} dB\0", value).is_ok(),
         Parameter::<Center, Range>::ID => write!(cursor, "{:.2} dB\0", value).is_ok(),
-        Parameter::<Angle, Range>::ID  => write!(cursor, "{:.0} deg\0", value).is_ok(),
+        Parameter::<Angle, Range>::ID => write!(cursor, "{:.0} deg\0", value).is_ok(),
         Parameter::<LRSwap, Select>::ID => write!(cursor, "{}\0", LRSwap::label(value.round() as u8)).is_ok(),
-        Parameter::<Solo, Select>::ID   => write!(cursor, "{}\0", Solo::label(value.round() as u8)).is_ok(),
-        Parameter::<Phase, Select>::ID  => write!(cursor, "{}\0", Phase::label(value.round() as u8)).is_ok(),
+        Parameter::<Solo, Select>::ID => write!(cursor, "{}\0", Solo::label(value.round() as u8)).is_ok(),
+        Parameter::<Phase, Select>::ID => write!(cursor, "{}\0", Phase::label(value.round() as u8)).is_ok(),
         _ => {
             let label = CalibrationMode::label(value.round() as u8);
             write!(cursor, "{}\0", label).is_ok()
@@ -194,8 +194,8 @@ pub extern "C" fn text_to_value(plugin: *const clap_plugin_t, _param_id: clap_id
 
     if _param_id as usize == Parameter::<CalibrationMode, Select>::ID {
         let v = match s {
-            "Off"          => CalibrationMode::OFF as f64,
-            "Continuous"   => CalibrationMode::CONTINUOUS as f64,
+            "Off" => CalibrationMode::OFF as f64,
+            "Continuous" => CalibrationMode::CONTINUOUS as f64,
             "Intermittent" => CalibrationMode::INTERMITTENT as f64,
             _ => return false,
         };
@@ -203,17 +203,28 @@ pub extern "C" fn text_to_value(plugin: *const clap_plugin_t, _param_id: clap_id
         return true;
     }
     if _param_id as usize == Parameter::<LRSwap, Select>::ID {
-        let v = match s { "On" => LRSwap::ON as f64, _ => LRSwap::OFF as f64 };
+        let v = match s {
+            "On" => LRSwap::ON as f64,
+            _ => LRSwap::OFF as f64,
+        };
         unsafe { *value = v };
         return true;
     }
     if _param_id as usize == Parameter::<Solo, Select>::ID {
-        let v = match s { "L" => Solo::L as f64, "R" => Solo::R as f64, _ => Solo::OFF as f64 };
+        let v = match s {
+            "L" => Solo::L as f64,
+            "R" => Solo::R as f64,
+            _ => Solo::OFF as f64,
+        };
         unsafe { *value = v };
         return true;
     }
     if _param_id as usize == Parameter::<Phase, Select>::ID {
-        let v = match s { "L" => Phase::L as f64, "R" => Phase::R as f64, _ => Phase::OFF as f64 };
+        let v = match s {
+            "L" => Phase::L as f64,
+            "R" => Phase::R as f64,
+            _ => Phase::OFF as f64,
+        };
         unsafe { *value = v };
         return true;
     }

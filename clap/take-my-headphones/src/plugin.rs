@@ -117,7 +117,7 @@ pub unsafe extern "C" fn init(plugin: *const clap_plugin_t) -> bool {
         if let Some(get_info) = PARAMETERS_EXT.get_info {
             // SAFETY: MAIN-THREAD must have FIRST THREAD_ID as SOME. OTHERWISE get_info WILL PANIC.
             if unsafe { get_info(plugin, n as u32, &mut information) } {
-                default_values[n] = information.default_value;
+                default_values[information.id as usize] = information.default_value;
             }
         }
     }

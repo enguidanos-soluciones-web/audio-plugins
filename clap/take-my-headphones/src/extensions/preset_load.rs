@@ -1,10 +1,4 @@
-use crate::{
-    clap::*,
-    parameters::any::PARAMS_COUNT,
-    plugin::Plugin,
-    preset_factory::preset_values,
-    state::ParamChange,
-};
+use crate::{clap::*, parameters::any::PARAMS_COUNT, plugin::Plugin, preset_factory::preset_values, state::ParamChange};
 use std::{ffi::CStr, sync::Arc};
 
 pub static PRESET_LOAD_EXT: clap_plugin_preset_load_t = clap_plugin_preset_load {

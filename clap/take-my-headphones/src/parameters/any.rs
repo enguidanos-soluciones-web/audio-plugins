@@ -1,5 +1,7 @@
 use super::{Parameter, Range, Select};
-use crate::parameters::{angle::Angle, calibration_mode::CalibrationMode, center::Center, cutoff::Cutoff, lrswap::LRSwap, phase::Phase, solo::Solo, xfeed::XFeed};
+use crate::parameters::{
+    angle::Angle, calibration_mode::CalibrationMode, center::Center, cutoff::Cutoff, lrswap::LRSwap, phase::Phase, solo::Solo, xfeed::XFeed,
+};
 
 pub const PARAMS_COUNT: usize = 8;
 

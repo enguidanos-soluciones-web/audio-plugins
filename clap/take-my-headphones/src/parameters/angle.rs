@@ -92,8 +92,12 @@ impl<'a> ParameterClickable<'a, Angle, Range> {
 }
 
 impl Widget for Parameter<Angle, Range> {
-    fn dom_id(&self) -> &'static str { "angle" }
-    fn param_id(&self) -> usize { self.id }
+    fn dom_id(&self) -> &'static str {
+        "angle"
+    }
+    fn param_id(&self) -> usize {
+        self.id
+    }
 
     fn draw(&self, scene: &mut Scene, coordinates: (f64, f64), dimensions: (f64, f64), _cursor: (f64, f64), value: f64) {
         let (x, y) = coordinates;

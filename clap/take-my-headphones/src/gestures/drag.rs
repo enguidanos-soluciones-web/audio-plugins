@@ -15,10 +15,9 @@ impl ActiveDrag {
             AnyParameter::XFeed { inner } => inner.normalize(raw),
             AnyParameter::Center { inner } => inner.normalize(raw),
             AnyParameter::Angle { inner } => inner.normalize(raw),
-            AnyParameter::CalibrationMode { .. } |
-            AnyParameter::LRSwap { .. } |
-            AnyParameter::Solo { .. } |
-            AnyParameter::Phase { .. } => return None, // dropdown — no drag
+            AnyParameter::CalibrationMode { .. } | AnyParameter::LRSwap { .. } | AnyParameter::Solo { .. } | AnyParameter::Phase { .. } => {
+                return None;
+            } // dropdown — no drag
         };
 
         let is_draggable = match &param {
@@ -26,10 +25,9 @@ impl ActiveDrag {
             AnyParameter::XFeed { inner } => inner.as_draggable().is_some(),
             AnyParameter::Center { inner } => inner.as_draggable().is_some(),
             AnyParameter::Angle { inner } => inner.as_draggable().is_some(),
-            AnyParameter::CalibrationMode { .. } |
-            AnyParameter::LRSwap { .. } |
-            AnyParameter::Solo { .. } |
-            AnyParameter::Phase { .. } => false,
+            AnyParameter::CalibrationMode { .. } | AnyParameter::LRSwap { .. } | AnyParameter::Solo { .. } | AnyParameter::Phase { .. } => {
+                false
+            }
         };
 
         if !is_draggable {
@@ -62,10 +60,9 @@ impl ActiveDrag {
             AnyParameter::XFeed { inner } => inner.as_draggable()?.on_drag(self.start_pos, self.start_value, (x, y)),
             AnyParameter::Center { inner } => inner.as_draggable()?.on_drag(self.start_pos, self.start_value, (x, y)),
             AnyParameter::Angle { inner } => inner.as_draggable()?.on_drag(self.start_pos, self.start_value, (x, y)),
-            AnyParameter::CalibrationMode { .. } |
-            AnyParameter::LRSwap { .. } |
-            AnyParameter::Solo { .. } |
-            AnyParameter::Phase { .. } => None,
+            AnyParameter::CalibrationMode { .. } | AnyParameter::LRSwap { .. } | AnyParameter::Solo { .. } | AnyParameter::Phase { .. } => {
+                None
+            }
         }
     }
 }

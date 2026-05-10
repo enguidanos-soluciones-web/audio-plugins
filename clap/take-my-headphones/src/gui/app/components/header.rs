@@ -7,7 +7,11 @@ use crate::{
 use dioxus::prelude::*;
 
 fn preset_matches(params: &[f64; PARAMS_COUNT], preset_idx: usize) -> bool {
-    PRESETS[preset_idx].values.iter().zip(params.iter()).all(|(a, b)| (a - b).abs() < 1e-9)
+    PRESETS[preset_idx]
+        .values
+        .iter()
+        .zip(params.iter())
+        .all(|(a, b)| (a - b).abs() < 1e-9)
 }
 
 #[component]
