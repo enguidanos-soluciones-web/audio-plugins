@@ -1,6 +1,7 @@
 [workspace]
 resolver = "3"
 members = [
+    "clap/__template",
     "clap/take-my-phones"
 ]
 
