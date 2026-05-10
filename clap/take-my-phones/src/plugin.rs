@@ -44,10 +44,9 @@ use crate::{
     channel::channel,
     clap::*,
     descriptor::PLUGIN_DESCRIPTOR,
-    dsp::{self, dc_filter::DcFilter, klon_buffer::KlonBuffer, lowpass_filter::LowPassFilter},
+    dsp::dc_filter::DcFilter,
     extensions::{audio_ports::AUDIO_PORTS_EXT, gui::GUI_EXT, parameters::PARAMETERS_EXT, state::STATE_EXT},
     gestures::click::ActiveClick,
-    helper::{DecibelConversion, db_to_linear},
     parameters::any::PARAMS_COUNT,
     plugin,
     processors::{
@@ -55,7 +54,7 @@ use crate::{
         render_audio::{render_audio_f32, render_audio_f64},
         sync_main_to_audio::sync_main_to_audio,
     },
-    state::{AudioThreadState, GuiRequest, MainThreadState, ModelUpdate, ParamChange, ParamEvent, ParamSnapshot},
+    state::{AudioThreadState, GuiRequest, MainThreadState, ParamChange, ParamEvent, ParamSnapshot},
 };
 use arc_swap::ArcSwap;
 use std::{

@@ -1,7 +1,7 @@
 use crate::{
     gestures::drag::ActiveDrag,
     gui::app::{dispatcher::Dispatcher, state::AppState},
-    parameters::{Parameter, Range, blend::Blend, input_gain::InputGain, output_gain::OutputGain, tone::Tone},
+    parameters::{Parameter, Range, blend::Blend, input_gain::InputGain, output_gain::OutputGain},
     state::GuiRequest,
 };
 use dioxus::prelude::*;
@@ -15,7 +15,6 @@ pub fn Parameters() -> Element {
 
     let input_db = format!("{:.1} db", state.read().params[Parameter::<InputGain, Range>::ID]);
     let output_db = format!("{:.1} db", state.read().params[Parameter::<OutputGain, Range>::ID]);
-    let tone_val = format!("{:.1}", state.read().params[Parameter::<Tone, Range>::ID] * 5.0);
     let blend_val = format!("{:.0}%", state.read().params[Parameter::<Blend, Range>::ID] * 100.0);
 
     rsx! {
@@ -64,28 +63,6 @@ pub fn Parameters() -> Element {
                         },
                     }
                     span { class: "text-xs font-semibold tracking-widest uppercase text-neutral-400", "Gain" }
-                }
-
-                div {
-                    class: "flex flex-col items-center gap-2.5",
-                    span { id: "tone-val", class: "text-amber-500 text-sm", "{tone_val}" }
-                    div {
-                        id: "tone",
-                        class: "w-20 h-20",
-                        onmousedown: {
-                            let state = state.clone();
-                            move |e| {
-                                let coords = e.data().client_coordinates();
-                                let raw = state.read().params[Parameter::<Tone, Range>::ID];
-                                drag.set(ActiveDrag::from_index(Parameter::<Tone, Range>::ID, coords.x, coords.y, raw));
-                            }
-                        },
-                        ondoubleclick: {
-                            let dispatcher = dispatcher.clone();
-                            move |_| dispatcher(GuiRequest::ResetParam(Parameter::<Tone, Range>::ID))
-                        },
-                    }
-                    span { class: "text-xs font-semibold tracking-widest uppercase text-neutral-400", "Tone" }
                 }
 
                 div {

@@ -1,9 +1,7 @@
 use crate::channel::{Receiver, Sender};
+use crate::clap::*;
 use crate::dsp::dc_filter::DcFilter;
-use crate::dsp::klon_buffer::KlonBuffer;
-use crate::dsp::lowpass_filter::LowPassFilter;
-use crate::{clap::*, dsp};
-use crate::{dsp::nam, parameters::any::PARAMS_COUNT};
+use crate::parameters::any::PARAMS_COUNT;
 use arc_swap::ArcSwap;
 use std::fmt::Debug;
 use std::sync::Arc;
@@ -53,10 +51,6 @@ pub struct AudioThreadState {
 
 impl AudioThreadState {
     pub fn reset(&mut self) {
-        if let Some(nam_model) = self.nam_model.as_mut() {
-            dsp::nam::ffi::reset(nam_model.pin_mut(), self.sample_rate, self.input_buf.len() as i32);
-        }
-
         self.input_buf.fill(0.0);
         self.output_buf.fill(0.0);
         self.dc_filter.reset();

@@ -1,7 +1,7 @@
 use crate::{
     gestures::drag::ActiveDrag,
     gui::app::{
-        components::{header::Header, nam_model_selector::NamModelSelector, parameters::Parameters},
+        components::{header::Header, parameters::Parameters},
         dispatcher::Dispatcher,
     },
     state::GuiRequest,
@@ -52,7 +52,6 @@ pub fn Layout() -> Element {
                 drag_last_dispatch.set(None);
             },
             Header {}
-            NamModelSelector {}
             Parameters {}
         }
     }

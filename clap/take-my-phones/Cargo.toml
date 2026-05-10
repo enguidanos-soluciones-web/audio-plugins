@@ -6,13 +6,6 @@ edition = "2024"
 [lib]
 crate-type = ["cdylib"]
 
-[profile.dev]
-opt-level = 0
-incremental = true
-
-[profile.dev.package."*"]
-opt-level = 2
-
 [dependencies]
 arc-swap = "1.9.1"
 anyrender_vello = "0.8"

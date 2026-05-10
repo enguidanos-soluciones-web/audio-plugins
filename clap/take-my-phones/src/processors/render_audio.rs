@@ -1,7 +1,6 @@
 use crate::{
-    dsp::nam,
     helper::{DecibelConversion, db_to_linear},
-    parameters::{Parameter, Range, blend::Blend, input_gain::InputGain, output_gain::OutputGain, tone::Tone},
+    parameters::{Parameter, Range, blend::Blend, input_gain::InputGain, output_gain::OutputGain},
     state::AudioThreadState,
 };
 
@@ -34,7 +33,6 @@ pub fn render_audio_f64(audio_thread: &mut AudioThreadState, input: *const f64, 
 
 pub fn render_audio_f32(audio_thread: &mut AudioThreadState, input: *const f32, output: *mut f32, nframes: usize) {
     audio_thread.assert_audio_thread();
-    apply_pending_model_update(audio_thread);
 
     let snapshot = audio_thread.param_snapshot.load();
 

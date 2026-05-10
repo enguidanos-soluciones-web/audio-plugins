@@ -3,3 +3,10 @@ resolver = "3"
 members = [
     "clap/take-my-phones"
 ]
+
+[profile.dev]
+opt-level = 0
+incremental = true
+
+[profile.dev.package."*"]
+opt-level = 2

@@ -4,7 +4,7 @@ use crate::{
         app::{dispatcher::Dispatcher, layout::Layout, state::AppState},
         widget::Widget,
     },
-    parameters::{Parameter, Range, any::PARAMS_COUNT, blend::Blend, input_gain::InputGain, output_gain::OutputGain, tone::Tone},
+    parameters::{Parameter, Range, any::PARAMS_COUNT, blend::Blend, input_gain::InputGain, output_gain::OutputGain},
     state::GUIShared,
 };
 use anyrender_vello::VelloScenePainter;
@@ -24,7 +24,6 @@ use vello::Scene;
 const PARAM_WIDGETS: &[(&str, usize)] = &[
     ("input-gain", Parameter::<InputGain, Range>::ID),
     ("output-gain", Parameter::<OutputGain, Range>::ID),
-    ("tone", Parameter::<Tone, Range>::ID),
     ("blend", Parameter::<Blend, Range>::ID),
 ];
 
@@ -204,18 +203,12 @@ impl View {
 
         self.draw_widget(
             scene,
-            &Parameter::<Tone, Range>::new(),
-            parameters_values[Parameter::<Tone, Range>::ID],
-        );
-
-        self.draw_widget(
-            scene,
             &Parameter::<Blend, Range>::new(),
             parameters_values[Parameter::<Blend, Range>::ID],
         );
     }
 
-    pub fn update_app_state(&mut self, state: &GUIShared, parameters_values: &[f64; PARAMS_COUNT]) {
+    pub fn update_app_state(&mut self, _state: &GUIShared, parameters_values: &[f64; PARAMS_COUNT]) {
         // Write inside the Dioxus runtime so the reactive system tracks the change
         // and sends SchedulerMsg to the vdom channel.
         let mut app_state = self.app_state;
@@ -223,8 +216,6 @@ impl View {
         self.doc.vdom.in_runtime(|| {
             let mut s = app_state.write();
             s.params = *parameters_values;
-            s.model_name = state.model_name.clone();
-            s.model_rate = state.nam_model_rate;
         });
     }
 }
