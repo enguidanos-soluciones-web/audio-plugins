@@ -1,7 +1,7 @@
 use crate::{
     gestures::drag::ActiveDrag,
     gui::app::{dispatcher::Dispatcher, state::AppState},
-    parameters::{Parameter, Range, cutoff::Cutoff, feed::Feed, mix::Mix},
+    parameters::{Parameter, Range, cutoff::Cutoff, mix::Mix, xfeed::XFeed},
     state::GuiRequest,
 };
 use dioxus::prelude::*;
@@ -14,8 +14,8 @@ pub fn Parameters() -> Element {
     let mut drag = consume_context::<Signal<Option<ActiveDrag>>>();
 
     let cutoff_val = Parameter::<Cutoff, Range>::format_value(state.read().params[Parameter::<Cutoff, Range>::ID]);
-    let feed_val   = Parameter::<Feed,   Range>::format_value(state.read().params[Parameter::<Feed,   Range>::ID]);
-    let mix_val    = Parameter::<Mix,    Range>::format_value(state.read().params[Parameter::<Mix,    Range>::ID]);
+    let feed_val = Parameter::<XFeed, Range>::format_value(state.read().params[Parameter::<XFeed, Range>::ID]);
+    let mix_val = Parameter::<Mix, Range>::format_value(state.read().params[Parameter::<Mix, Range>::ID]);
 
     rsx! {
         div {
@@ -53,16 +53,16 @@ pub fn Parameters() -> Element {
                         let state = state.clone();
                         move |e| {
                             let coords = e.data().client_coordinates();
-                            let raw = state.read().params[Parameter::<Feed, Range>::ID];
-                            drag.set(ActiveDrag::from_index(Parameter::<Feed, Range>::ID, coords.x, coords.y, raw));
+                            let raw = state.read().params[Parameter::<XFeed, Range>::ID];
+                            drag.set(ActiveDrag::from_index(Parameter::<XFeed, Range>::ID, coords.x, coords.y, raw));
                         }
                     },
                     ondoubleclick: {
                         let dispatcher = dispatcher.clone();
-                        move |_| dispatcher(GuiRequest::ResetParam(Parameter::<Feed, Range>::ID))
+                        move |_| dispatcher(GuiRequest::ResetParam(Parameter::<XFeed, Range>::ID))
                     },
                 }
-                span { class: "text-xs font-semibold tracking-widest uppercase text-neutral-400", "Feed" }
+                span { class: "text-xs font-semibold tracking-widest uppercase text-neutral-400", "XFeed" }
             }
 
             div {

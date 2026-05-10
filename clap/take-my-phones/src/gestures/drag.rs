@@ -12,13 +12,13 @@ impl ActiveDrag {
 
         let start_value = match &param {
             AnyParameter::Cutoff { inner } => inner.normalize(raw),
-            AnyParameter::Feed   { inner } => inner.normalize(raw),
+            AnyParameter::XFeed   { inner } => inner.normalize(raw),
             AnyParameter::Mix    { inner } => inner.normalize(raw),
         };
 
         let is_draggable = match &param {
             AnyParameter::Cutoff { inner } => inner.as_draggable().is_some(),
-            AnyParameter::Feed   { inner } => inner.as_draggable().is_some(),
+            AnyParameter::XFeed   { inner } => inner.as_draggable().is_some(),
             AnyParameter::Mix    { inner } => inner.as_draggable().is_some(),
         };
 
@@ -32,7 +32,7 @@ impl ActiveDrag {
     pub fn on_drag(&self, x: f64, y: f64) -> Option<ProposedParamChange> {
         match &self.param {
             AnyParameter::Cutoff { inner } => inner.as_draggable()?.on_drag(self.start_pos, self.start_value, (x, y)),
-            AnyParameter::Feed   { inner } => inner.as_draggable()?.on_drag(self.start_pos, self.start_value, (x, y)),
+            AnyParameter::XFeed   { inner } => inner.as_draggable()?.on_drag(self.start_pos, self.start_value, (x, y)),
             AnyParameter::Mix    { inner } => inner.as_draggable()?.on_drag(self.start_pos, self.start_value, (x, y)),
         }
     }

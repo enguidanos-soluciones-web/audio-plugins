@@ -8,7 +8,7 @@ impl ActiveClick {
 
         let gestures = match &param {
             AnyParameter::Cutoff { inner } => inner.gestures,
-            AnyParameter::Feed   { inner } => inner.gestures,
+            AnyParameter::XFeed   { inner } => inner.gestures,
             AnyParameter::Mix    { inner } => inner.gestures,
         };
 
@@ -22,7 +22,7 @@ impl ActiveClick {
     pub fn on_double_click(&self) -> Option<ProposedParamChange> {
         match &self.0 {
             AnyParameter::Cutoff { inner } if inner.gestures & PARAMETER_GESTURE_DOUBLE_CLICK != 0 => inner.as_clickable()?.on_double_click(),
-            AnyParameter::Feed   { inner } if inner.gestures & PARAMETER_GESTURE_DOUBLE_CLICK != 0 => inner.as_clickable()?.on_double_click(),
+            AnyParameter::XFeed   { inner } if inner.gestures & PARAMETER_GESTURE_DOUBLE_CLICK != 0 => inner.as_clickable()?.on_double_click(),
             AnyParameter::Mix    { inner } if inner.gestures & PARAMETER_GESTURE_DOUBLE_CLICK != 0 => inner.as_clickable()?.on_double_click(),
             _ => None,
         }

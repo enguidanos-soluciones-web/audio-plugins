@@ -49,7 +49,7 @@ pub extern "C" fn get_info(plugin: *const clap_plugin_t, index: u32, information
             new_information.default_value = inner.behave.def;
             copy_cstr(&mut new_information.name, inner.name.as_bytes());
         }
-        AnyParameter::Feed { inner } => {
+        AnyParameter::XFeed { inner } => {
             new_information.min_value = inner.behave.min;
             new_information.max_value = inner.behave.max;
             new_information.default_value = inner.behave.def;

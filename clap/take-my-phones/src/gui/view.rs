@@ -4,7 +4,7 @@ use crate::{
         app::{dispatcher::Dispatcher, layout::Layout, state::AppState},
         widget::Widget,
     },
-    parameters::{Parameter, Range, any::PARAMS_COUNT, cutoff::Cutoff, feed::Feed, mix::Mix},
+    parameters::{Parameter, Range, any::PARAMS_COUNT, cutoff::Cutoff, mix::Mix, xfeed::XFeed},
     state::GUIShared,
 };
 use anyrender_vello::VelloScenePainter;
@@ -23,8 +23,8 @@ use vello::Scene;
 
 const PARAM_WIDGETS: &[(&str, usize)] = &[
     ("cutoff", Parameter::<Cutoff, Range>::ID),
-    ("feed",   Parameter::<Feed,   Range>::ID),
-    ("mix",    Parameter::<Mix,    Range>::ID),
+    ("feed", Parameter::<XFeed, Range>::ID),
+    ("mix", Parameter::<Mix, Range>::ID),
 ];
 
 pub struct View {
@@ -189,9 +189,21 @@ impl View {
     }
 
     pub fn draw_widgets(&mut self, scene: &mut Scene, parameters_values: &[f64; PARAMS_COUNT]) {
-        self.draw_widget(scene, &Parameter::<Cutoff, Range>::new(), parameters_values[Parameter::<Cutoff, Range>::ID]);
-        self.draw_widget(scene, &Parameter::<Feed,   Range>::new(), parameters_values[Parameter::<Feed,   Range>::ID]);
-        self.draw_widget(scene, &Parameter::<Mix,    Range>::new(), parameters_values[Parameter::<Mix,    Range>::ID]);
+        self.draw_widget(
+            scene,
+            &Parameter::<Cutoff, Range>::new(),
+            parameters_values[Parameter::<Cutoff, Range>::ID],
+        );
+        self.draw_widget(
+            scene,
+            &Parameter::<XFeed, Range>::new(),
+            parameters_values[Parameter::<XFeed, Range>::ID],
+        );
+        self.draw_widget(
+            scene,
+            &Parameter::<Mix, Range>::new(),
+            parameters_values[Parameter::<Mix, Range>::ID],
+        );
     }
 
     pub fn update_app_state(&mut self, _state: &GUIShared, parameters_values: &[f64; PARAMS_COUNT]) {

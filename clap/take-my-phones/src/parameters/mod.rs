@@ -1,6 +1,6 @@
 pub mod any;
 pub mod cutoff;
-pub mod feed;
+pub mod xfeed;
 pub mod mix;
 
 use std::marker::PhantomData;

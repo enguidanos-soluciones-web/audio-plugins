@@ -1,5 +1,5 @@
 use crate::{
-    parameters::{Parameter, Range, cutoff::Cutoff, feed::Feed, mix::Mix},
+    parameters::{Parameter, Range, cutoff::Cutoff, mix::Mix, xfeed::XFeed},
     state::AudioThreadState,
 };
 
@@ -15,13 +15,13 @@ pub fn render_audio_f64(
 
     let snapshot = audio_thread.param_snapshot.load();
     let cutoff = snapshot.values[Parameter::<Cutoff, Range>::ID];
-    let feed   = snapshot.values[Parameter::<Feed,   Range>::ID];
-    let mix    = snapshot.values[Parameter::<Mix,    Range>::ID];
+    let feed = snapshot.values[Parameter::<XFeed, Range>::ID];
+    let mix = snapshot.values[Parameter::<Mix, Range>::ID];
 
     audio_thread.bs2b.update_coeffs(cutoff, feed, audio_thread.sample_rate);
 
-    let in_l  = unsafe { std::slice::from_raw_parts(in_l, nframes) };
-    let in_r  = unsafe { std::slice::from_raw_parts(in_r, nframes) };
+    let in_l = unsafe { std::slice::from_raw_parts(in_l, nframes) };
+    let in_r = unsafe { std::slice::from_raw_parts(in_r, nframes) };
     let out_l = unsafe { std::slice::from_raw_parts_mut(out_l, nframes) };
     let out_r = unsafe { std::slice::from_raw_parts_mut(out_r, nframes) };
 
@@ -44,13 +44,13 @@ pub fn render_audio_f32(
 
     let snapshot = audio_thread.param_snapshot.load();
     let cutoff = snapshot.values[Parameter::<Cutoff, Range>::ID];
-    let feed   = snapshot.values[Parameter::<Feed,   Range>::ID];
-    let mix    = snapshot.values[Parameter::<Mix,    Range>::ID];
+    let feed = snapshot.values[Parameter::<XFeed, Range>::ID];
+    let mix = snapshot.values[Parameter::<Mix, Range>::ID];
 
     audio_thread.bs2b.update_coeffs(cutoff, feed, audio_thread.sample_rate);
 
-    let in_l  = unsafe { std::slice::from_raw_parts(in_l, nframes) };
-    let in_r  = unsafe { std::slice::from_raw_parts(in_r, nframes) };
+    let in_l = unsafe { std::slice::from_raw_parts(in_l, nframes) };
+    let in_r = unsafe { std::slice::from_raw_parts(in_r, nframes) };
     let out_l = unsafe { std::slice::from_raw_parts_mut(out_l, nframes) };
     let out_r = unsafe { std::slice::from_raw_parts_mut(out_r, nframes) };
 
