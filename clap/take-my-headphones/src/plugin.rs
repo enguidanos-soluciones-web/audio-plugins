@@ -44,7 +44,7 @@ use crate::{
     channel::channel,
     clap::*,
     descriptor::PLUGIN_DESCRIPTOR,
-    dsp::{bs2b::Bs2b, calibration::Calibration, itd::ItdDelay},
+    state::DspState,
     extensions::{audio_ports::AUDIO_PORTS_EXT, gui::GUI_EXT, parameters::PARAMETERS_EXT, preset_load::PRESET_LOAD_EXT, state::STATE_EXT},
     gestures::click::ActiveClick,
     parameters::any::PARAMS_COUNT,
@@ -133,7 +133,7 @@ pub unsafe extern "C" fn destroy(plugin: *const clap_plugin_t) {
 }
 
 // [main-thread & !active]
-pub unsafe extern "C" fn activate(plugin: *const clap_plugin, sample_rate: f64, _min_frames_count: u32, max_frames_count: u32) -> bool {
+pub unsafe extern "C" fn activate(plugin: *const clap_plugin, sample_rate: f64, _min_frames_count: u32, _max_frames_count: u32) -> bool {
     let plugin_ref = unsafe { ((*plugin).plugin_data as *mut Plugin).as_mut_unchecked() };
 
     if plugin_ref.audio_thread.is_some() {
@@ -146,11 +146,7 @@ pub unsafe extern "C" fn activate(plugin: *const clap_plugin, sample_rate: f64, 
     plugin_ref.audio_thread = Some(AudioThreadState {
         host: plugin_ref.host,
         sample_rate,
-        bs2b: Bs2b::new(700.0, 4.5, sample_rate),
-        itd: ItdDelay::new(),
-        cal: Calibration::new(sample_rate),
-        input_buf: vec![0.0; max_frames_count as usize],
-        output_buf: vec![0.0; max_frames_count as usize],
+        dsp: DspState::new(sample_rate),
         param_snapshot: Arc::clone(&main_thread.param_snapshot),
         param_changes: main_thread.param_changes.new_receiver(),
         daw_events: main_thread.daw_events.new_sender(),

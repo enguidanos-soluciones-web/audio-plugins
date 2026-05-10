@@ -1,5 +1,4 @@
 use crate::{
-    dsp::itd::ItdDelay,
     parameters::{
         Parameter, Range, Select, angle::Angle, calibration_mode::CalibrationMode, center::Center, cutoff::Cutoff, gain::Gain,
         lrswap::LRSwap, phase::Phase, solo::Solo, xfeed::XFeed,
@@ -23,13 +22,16 @@ pub fn render_audio_f64(
     let xfeed = snapshot.values[Parameter::<XFeed, Range>::ID];
     let calibration_mode = snapshot.values[Parameter::<CalibrationMode, Select>::ID].round() as u8;
     let center_gain = 10f64.powf(snapshot.values[Parameter::<Center, Range>::ID] / 20.0);
-    let delay_samples = ItdDelay::angle_to_delay_samples(snapshot.values[Parameter::<Angle, Range>::ID], audio_thread.sample_rate);
+    let delay_samples = crate::dsp::itd::ItdDelay::angle_to_delay_samples(
+        snapshot.values[Parameter::<Angle, Range>::ID],
+        audio_thread.sample_rate,
+    );
     let lrswap = snapshot.values[Parameter::<LRSwap, Select>::ID].round() as u8;
     let solo = snapshot.values[Parameter::<Solo, Select>::ID].round() as u8;
     let phase = snapshot.values[Parameter::<Phase, Select>::ID].round() as u8;
     let makeup_gain = 10f64.powf(snapshot.values[Parameter::<Gain, Range>::ID] / 20.0);
 
-    audio_thread.bs2b.update_coeffs(cutoff, xfeed, audio_thread.sample_rate);
+    audio_thread.dsp.bs2b.update_coeffs(cutoff, xfeed, audio_thread.sample_rate);
 
     let in_l = unsafe { std::slice::from_raw_parts(in_l, nframes) };
     let in_r = unsafe { std::slice::from_raw_parts(in_r, nframes) };
@@ -39,7 +41,7 @@ pub fn render_audio_f64(
     // -12 dBFS target level for calibration pink noise (10^(-12/20))
     const CAL_GAIN: f64 = 0.25118864315095797;
 
-    let half = audio_thread.cal.half_period;
+    let half = audio_thread.dsp.calibration.half_period;
 
     for i in 0..nframes {
         let (raw_l, raw_r) = match calibration_mode {
@@ -50,16 +52,16 @@ pub fn render_audio_f64(
             // Adjust Cutoff: controls which frequencies appear in the right (crossed) ear.
             // Adjust XFeed: controls how loud the crossed signal is in the right ear.
             CalibrationMode::CONTINUOUS => {
-                let n = audio_thread.cal.pink_noise.next() * CAL_GAIN;
+                let n = audio_thread.dsp.calibration.pink_noise.next() * CAL_GAIN;
                 (n, 0.0)
             }
 
             // Intermittent alternating mono pink noise at -12 dBFS — 500ms L, then 500ms R, repeat.
             // Good for tuning Angle: hear how the ITD delay externalizes the image.
             CalibrationMode::INTERMITTENT => {
-                let cal_phase = audio_thread.cal.phase;
-                audio_thread.cal.phase = (cal_phase + 1) % (half * 2);
-                let n = audio_thread.cal.pink_noise.next() * CAL_GAIN;
+                let cal_phase = audio_thread.dsp.calibration.phase;
+                audio_thread.dsp.calibration.phase = (cal_phase + 1) % (half * 2);
+                let n = audio_thread.dsp.calibration.pink_noise.next() * CAL_GAIN;
                 if cal_phase < half { (n, 0.0) } else { (0.0, n) }
             }
 
@@ -74,8 +76,8 @@ pub fn render_audio_f64(
         let src_r = if phase == Phase::R { -src_r } else { src_r };
 
         // 3. ITD delay for the crossed path + bs2b
-        let (src_l_delayed, src_r_delayed) = audio_thread.itd.process(src_l, src_r, delay_samples);
-        let (bs2b_l, bs2b_r) = audio_thread.bs2b.process_with_itd(src_l, src_r, src_l_delayed, src_r_delayed);
+        let (src_l_delayed, src_r_delayed) = audio_thread.dsp.itd.process(src_l, src_r, delay_samples);
+        let (bs2b_l, bs2b_r) = audio_thread.dsp.bs2b.process_with_itd(src_l, src_r, src_l_delayed, src_r_delayed);
 
         // 4. M/S center attenuation (SPL Phonitor 3 Center knob)
         let mid = (bs2b_l + bs2b_r) * 0.5 * center_gain;
@@ -112,13 +114,16 @@ pub fn render_audio_f32(
     let xfeed = snapshot.values[Parameter::<XFeed, Range>::ID];
     let calibration_mode = snapshot.values[Parameter::<CalibrationMode, Select>::ID].round() as u8;
     let center_gain = 10f64.powf(snapshot.values[Parameter::<Center, Range>::ID] / 20.0);
-    let delay_samples = ItdDelay::angle_to_delay_samples(snapshot.values[Parameter::<Angle, Range>::ID], audio_thread.sample_rate);
+    let delay_samples = crate::dsp::itd::ItdDelay::angle_to_delay_samples(
+        snapshot.values[Parameter::<Angle, Range>::ID],
+        audio_thread.sample_rate,
+    );
     let lrswap = snapshot.values[Parameter::<LRSwap, Select>::ID].round() as u8;
     let solo = snapshot.values[Parameter::<Solo, Select>::ID].round() as u8;
     let phase = snapshot.values[Parameter::<Phase, Select>::ID].round() as u8;
     let makeup_gain = 10f64.powf(snapshot.values[Parameter::<Gain, Range>::ID] / 20.0);
 
-    audio_thread.bs2b.update_coeffs(cutoff, xfeed, audio_thread.sample_rate);
+    audio_thread.dsp.bs2b.update_coeffs(cutoff, xfeed, audio_thread.sample_rate);
 
     let in_l = unsafe { std::slice::from_raw_parts(in_l, nframes) };
     let in_r = unsafe { std::slice::from_raw_parts(in_r, nframes) };
@@ -127,21 +132,21 @@ pub fn render_audio_f32(
 
     const CAL_GAIN: f64 = 0.25118864315095797; // -12 dBFS (10^(-12/20))
 
-    let half = audio_thread.cal.half_period;
+    let half = audio_thread.dsp.calibration.half_period;
 
     for i in 0..nframes {
         let (raw_l, raw_r) = match calibration_mode {
             CalibrationMode::OFF => (in_l[i] as f64, in_r[i] as f64),
 
             CalibrationMode::CONTINUOUS => {
-                let n = audio_thread.cal.pink_noise.next() * CAL_GAIN;
+                let n = audio_thread.dsp.calibration.pink_noise.next() * CAL_GAIN;
                 (n, 0.0)
             }
 
             CalibrationMode::INTERMITTENT => {
-                let cal_phase = audio_thread.cal.phase;
-                audio_thread.cal.phase = (cal_phase + 1) % (half * 2);
-                let n = audio_thread.cal.pink_noise.next() * CAL_GAIN;
+                let cal_phase = audio_thread.dsp.calibration.phase;
+                audio_thread.dsp.calibration.phase = (cal_phase + 1) % (half * 2);
+                let n = audio_thread.dsp.calibration.pink_noise.next() * CAL_GAIN;
                 if cal_phase < half { (n, 0.0) } else { (0.0, n) }
             }
 
@@ -152,8 +157,8 @@ pub fn render_audio_f32(
         let src_l = if phase == Phase::L { -src_l } else { src_l };
         let src_r = if phase == Phase::R { -src_r } else { src_r };
 
-        let (src_l_delayed, src_r_delayed) = audio_thread.itd.process(src_l, src_r, delay_samples);
-        let (bs2b_l, bs2b_r) = audio_thread.bs2b.process_with_itd(src_l, src_r, src_l_delayed, src_r_delayed);
+        let (src_l_delayed, src_r_delayed) = audio_thread.dsp.itd.process(src_l, src_r, delay_samples);
+        let (bs2b_l, bs2b_r) = audio_thread.dsp.bs2b.process_with_itd(src_l, src_r, src_l_delayed, src_r_delayed);
 
         let mid = (bs2b_l + bs2b_r) * 0.5 * center_gain;
         let side = (bs2b_l - bs2b_r) * 0.5;

@@ -25,7 +25,7 @@ impl Parameter<Center, Range> {
             behave: Range {
                 min: -2.0,
                 max: 0.0,
-                def: 0.0,
+                def: -0.27,
             },
             _marker_type: std::marker::PhantomData,
             _marker_behaviour: std::marker::PhantomData,

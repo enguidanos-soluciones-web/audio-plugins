@@ -42,16 +42,33 @@ pub struct ParamSnapshot {
     pub values: [f64; PARAMS_COUNT],
 }
 
+pub struct DspState {
+    pub bs2b: Bs2b,
+    pub itd: ItdDelay,
+    pub calibration: Calibration,
+}
+
+impl DspState {
+    pub fn new(sample_rate: f64) -> Self {
+        Self {
+            bs2b: Bs2b::new(),
+            itd: ItdDelay::new(),
+            calibration: Calibration::new(sample_rate),
+        }
+    }
+
+    pub fn reset(&mut self) {
+        self.bs2b.reset();
+        self.itd.reset();
+        self.calibration.reset();
+    }
+}
+
 pub struct AudioThreadState {
     pub host: *const clap_host_t,
     pub sample_rate: f64,
 
-    pub input_buf: Vec<f64>,
-    pub output_buf: Vec<f64>,
-
-    pub bs2b: Bs2b,
-    pub itd: ItdDelay,
-    pub cal: Calibration,
+    pub dsp: DspState,
 
     pub daw_events: Sender<ParamEvent>,
     pub param_changes: Receiver<ParamChange>,
@@ -62,11 +79,7 @@ pub struct AudioThreadState {
 
 impl AudioThreadState {
     pub fn reset(&mut self) {
-        self.input_buf.fill(0.0);
-        self.output_buf.fill(0.0);
-        self.bs2b.reset();
-        self.itd.reset();
-        self.cal.reset();
+        self.dsp.reset();
     }
 
     pub fn assert_audio_thread(&self) {

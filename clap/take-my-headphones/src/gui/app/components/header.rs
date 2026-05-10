@@ -37,9 +37,16 @@ pub fn Header() -> Element {
             id: "header",
             class: "flex items-center justify-between px-4 py-4 border-b bg-neutral-900 border-neutral-700",
 
-            span {
-                class: "text-amber-500 uppercase tracking-widest font-bold text-sm whitespace-nowrap",
-                "Take My Headphones"
+            div {
+                class: "flex items-baseline gap-2",
+                span {
+                    class: "text-amber-500 uppercase tracking-widest font-bold text-sm whitespace-nowrap",
+                    "Take My Headphones"
+                }
+                span {
+                    class: "text-neutral-600 text-xs whitespace-nowrap",
+                    "v{env!(\"CARGO_PKG_VERSION\")}"
+                }
             }
 
             span {

@@ -25,7 +25,7 @@ impl Parameter<XFeed, Range> {
             behave: Range {
                 min: 1.0,
                 max: 15.0,
-                def: 4.5,
+                def: 6.2,
             },
             _marker_type: std::marker::PhantomData,
             _marker_behaviour: std::marker::PhantomData,

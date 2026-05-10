@@ -11,7 +11,7 @@ use std::f64::consts::PI;
 ///   Default:   Fc=700 Hz, feed=4.5 dB  (Gd=-6.75, Ad_h=-2.25)
 ///   Chu Moy:   Fc=700 Hz, feed=6.0 dB  (Gd=-8.0,  Ad_h=-2.0 )
 ///   Jan Meier: Fc=650 Hz, feed=9.5 dB  (Gd=-10.917, Ad_h=-1.417)
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Default)]
 pub struct Bs2bCoefficients {
     /// One-pole LP (crossed path): y[n] = a0*x[n] + b1*y[n-1]
     pub a0: f64,
@@ -101,11 +101,11 @@ pub struct Bs2b {
 }
 
 impl Bs2b {
-    pub fn new(fc_hz: f64, feed_db: f64, sample_rate: f64) -> Self {
+    pub fn new() -> Self {
         Self {
             left: Bs2bChannel::new(),
             right: Bs2bChannel::new(),
-            coeffs: Bs2bCoefficients::compute(fc_hz, feed_db, sample_rate),
+            coeffs: Bs2bCoefficients::default(),
         }
     }
 

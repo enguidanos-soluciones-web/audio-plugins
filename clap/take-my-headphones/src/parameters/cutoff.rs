@@ -25,7 +25,7 @@ impl Parameter<Cutoff, Range> {
             behave: Range {
                 min: 300.0,
                 max: 2000.0,
-                def: 700.0,
+                def: 822.0,
             },
             _marker_type: std::marker::PhantomData,
             _marker_behaviour: std::marker::PhantomData,
