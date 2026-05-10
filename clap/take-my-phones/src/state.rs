@@ -1,0 +1,100 @@
+use crate::channel::{Receiver, Sender};
+use crate::dsp::dc_filter::DcFilter;
+use crate::dsp::klon_buffer::KlonBuffer;
+use crate::dsp::lowpass_filter::LowPassFilter;
+use crate::{clap::*, dsp};
+use crate::{dsp::nam, parameters::any::PARAMS_COUNT};
+use arc_swap::ArcSwap;
+use std::fmt::Debug;
+use std::sync::Arc;
+
+/// Requests sent from the GUI thread to the main thread.
+#[derive(Debug)]
+pub enum GuiRequest {
+    /// User double-clicked a knob — main thread should reset the parameter to its default value.
+    ResetParam(usize),
+    /// User dragged a knob — main thread should apply the new parameter value.
+    SetParam(usize, f64),
+}
+
+#[derive(Debug)]
+pub enum ParamEvent {
+    Ack,
+    Nack { id: usize },
+    Automation { id: usize, value: f64 },
+}
+
+#[derive(Debug)]
+pub struct ParamChange {
+    pub id: usize,
+    pub value: f64,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct ParamSnapshot {
+    pub values: [f64; PARAMS_COUNT],
+}
+
+pub struct AudioThreadState {
+    pub host: *const clap_host_t,
+    pub sample_rate: f64,
+
+    pub input_buf: Vec<f64>,
+    pub output_buf: Vec<f64>,
+
+    pub dc_filter: DcFilter,
+
+    pub daw_events: Sender<ParamEvent>,
+    pub param_changes: Receiver<ParamChange>,
+    pub param_snapshot: Arc<ArcSwap<ParamSnapshot>>,
+
+    pub thread_id: Option<std::thread::ThreadId>,
+}
+
+impl AudioThreadState {
+    pub fn reset(&mut self) {
+        if let Some(nam_model) = self.nam_model.as_mut() {
+            dsp::nam::ffi::reset(nam_model.pin_mut(), self.sample_rate, self.input_buf.len() as i32);
+        }
+
+        self.input_buf.fill(0.0);
+        self.output_buf.fill(0.0);
+        self.dc_filter.reset();
+    }
+
+    pub fn assert_audio_thread(&self) {
+        debug_assert_eq!(
+            std::thread::current().id(),
+            self.thread_id.expect("premature access to audio thread id"),
+            "AudioThreadState accessed from wrong thread!"
+        );
+    }
+}
+
+pub struct MainThreadState {
+    pub param_snapshot: Arc<ArcSwap<ParamSnapshot>>,
+
+    pub daw_events: Receiver<ParamEvent>,
+    pub param_changes: Sender<ParamChange>,
+
+    pub gui_shared: Arc<ArcSwap<GUIShared>>,
+    pub gui_window: Option<baseview::WindowHandle>,
+    pub gui_width: u32,
+    pub gui_height: u32,
+    pub gui_requests: Receiver<GuiRequest>,
+
+    pub thread_id: Option<std::thread::ThreadId>,
+}
+
+impl MainThreadState {
+    pub fn assert_main_thread(&self) {
+        debug_assert_eq!(
+            std::thread::current().id(),
+            self.thread_id.expect("premature access to main thread"),
+            "MainThreadState accessed from wrong thread!"
+        );
+    }
+}
+
+#[derive(Debug, Default, Clone)]
+pub struct GUIShared {}

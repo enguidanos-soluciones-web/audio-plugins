@@ -1,0 +1,4 @@
+[submodule "external/clap-1.2.7"]
+	path = external/clap-1.2.7
+	url = https://github.com/free-audio/clap
+	branch = main
