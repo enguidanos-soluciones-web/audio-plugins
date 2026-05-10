@@ -38,14 +38,9 @@ jobs:
           rustup target add aarch64-apple-darwin
           rustup target add x86_64-apple-darwin
 
-      - name: Cache Rust
-        uses: actions/cache@v4
+      - uses: Swatinem/rust-cache@v2
         with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: macos-universal-cargo-${{ hashFiles('**/Cargo.lock') }}
+          key: macos-universal
 
       - name: Install Tailwind CSS
         run: |
@@ -158,14 +153,9 @@ jobs:
             libxcb-shape0-dev \
             libxcb-xfixes0-dev
 
-      - name: Cache Rust
-        uses: actions/cache@v4
+      - uses: Swatinem/rust-cache@v2
         with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: linux-x86_64-cargo-${{ hashFiles('**/Cargo.lock') }}
+          key: linux-x86_64
 
       - name: Install Tailwind CSS
         run: |
@@ -222,14 +212,9 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@nightly
 
-      - name: Cache Rust
-        uses: actions/cache@v4
+      - uses: Swatinem/rust-cache@v2
         with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: windows-x86_64-cargo-${{ hashFiles('**/Cargo.lock') }}
+          key: windows-x86_64
 
       - name: Install Tailwind CSS
         shell: bash
