@@ -39,7 +39,7 @@ pub fn Header() -> Element {
 
             span {
                 class: "text-amber-500 uppercase tracking-widest font-bold text-sm whitespace-nowrap",
-                "Take My Phones"
+                "Take My Headphones"
             }
 
             span {
