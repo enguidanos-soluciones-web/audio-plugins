@@ -7,34 +7,34 @@ edition = "2024"
 crate-type = ["cdylib"]
 
 [dependencies]
-arc-swap = "1.9.1"
-anyrender_vello = "0.8"
-baseview = { git = "https://github.com/RustAudio/baseview" }
-blitz-dom = { git = "https://github.com/DioxusLabs/blitz" }
-blitz-paint = { git = "https://github.com/DioxusLabs/blitz", default-features = false }
-blitz-traits = { git = "https://github.com/DioxusLabs/blitz", default-features = false }
-dioxus-native-dom = { git = "https://github.com/DioxusLabs/blitz", default-features = false, features = ["system-fonts"] }
-dioxus = { version = "0.7.7", features = ["macro"] }
-dioxus-core = "0.7.7"
-keyboard-types = "0.7"
-cxx = "1.0.194"
-pollster = "0.4.0"
-raw-window-handle = "0.5"
-vello = "0.8.0"
-wgpu = "28.0.0"
-crossbeam-queue = "0.3.12"
-strum = "0.28.0"
-strum_macros = "0.28.0"
+arc-swap = { workspace = true }
+anyrender_vello = { workspace = true }
+baseview = { workspace = true }
+blitz-dom = { workspace = true }
+blitz-paint = { workspace = true }
+blitz-traits = { workspace = true }
+dioxus-native-dom = { workspace = true }
+dioxus = { workspace = true }
+dioxus-core = { workspace = true }
+keyboard-types = { workspace = true }
+cxx = { workspace = true }
+pollster = { workspace = true }
+raw-window-handle = { workspace = true }
+vello = { workspace = true }
+wgpu = { workspace = true }
+crossbeam-queue = { workspace = true }
+strum = { workspace = true }
+strum_macros = { workspace = true }
 
 [target.'cfg(target_os = "linux")'.dependencies]
-rfd = { version = "0.17.2", default-features = false, features = ["gtk3"] }
+rfd = { workspace = true, default-features = false, features = ["gtk3"] }
 
 [target.'cfg(not(target_os = "linux"))'.dependencies]
-rfd = { version = "0.17.2", default-features = false }
+rfd = { workspace = true, default-features = false }
 
 [build-dependencies]
-bindgen = "0.72.1"
-cxx-build = "1.0.194"
+bindgen = { workspace = true }
+cxx-build = { workspace = true }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 objc = "0.2"

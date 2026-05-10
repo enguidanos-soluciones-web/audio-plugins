@@ -1,7 +1,7 @@
 use super::{Parameter, Range};
 use crate::parameters::{blend::Blend, input_gain::InputGain, output_gain::OutputGain};
 
-pub const PARAMS_COUNT: usize = 4;
+pub const PARAMS_COUNT: usize = 3;
 
 pub enum AnyParameter {
     InputGain { inner: Parameter<InputGain, Range> },

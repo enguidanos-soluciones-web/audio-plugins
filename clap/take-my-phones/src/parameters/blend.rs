@@ -15,7 +15,7 @@ use vello::{
 pub struct Blend;
 
 impl Parameter<Blend, Range> {
-    pub const ID: usize = 3;
+    pub const ID: usize = 2;
 
     pub fn new() -> Self {
         Self {

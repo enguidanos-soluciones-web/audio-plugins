@@ -85,14 +85,5 @@ pub extern "C" fn load(plugin: *const clap_plugin_t, stream: *const clap_istream
         });
     }
 
-    // Read model path (optional — older state blobs without path are still valid).
-    let mut len_buf = [0u8; 4];
-    if read_all(&mut len_buf) {
-        let path_len = u32::from_le_bytes(len_buf) as usize;
-        let mut path_bytes = vec![0u8; path_len];
-
-        if read_all(&mut path_bytes) {}
-    }
-
     true
 }

@@ -1,7 +1,7 @@
-plugin_name := "neural_amp_modeler"
-lib_name    := "neural_amp_modeler"
+plugin_name := "take_my_phones"
+lib_name    := "take_my_phones"
 
-build_dir   := "target/release"
+build_dir   := "../../target/release"
 
 styles:
     tailwindcss -i ./src/gui/app/style/index.css -o ./src/gui/app/style/output.css -m
@@ -41,9 +41,9 @@ _plist:
     <plist version="1.0">
     <dict>
         <key>CFBundleExecutable</key>
-        <string>neural_amp_modeler</string>
+        <string>take_my_phones</string>
         <key>CFBundleIdentifier</key>
-        <string>com.enguidanosweb.NeuralAmpModeler</string>
+        <string>com.enguidanosweb.TakeMyPhones</string>
         <key>CFBundleVersion</key>
         <string>0.0.1</string>
         <key>CFBundlePackageType</key>
