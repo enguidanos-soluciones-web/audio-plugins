@@ -4,4 +4,4 @@
 
 Functional emulation of the Matrix section of the SPL Phonitor 3 and more.
 
-![screenshot](./docs/take_my_phones.png)
+![screenshot](./docs/take_my_headphones.png)

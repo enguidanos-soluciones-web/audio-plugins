@@ -1,31 +1,17 @@
-## Unofficial Cross Platform Neural Amp Modeler Plugin
+## Take My Headphones (Crossfeed)
 
-> MacOS, Windows and Linux
-> Tested in MacOS and Linux with REAPER
+![screenshot](../../docs/take_my_headphones.png)
 
-![screenshot](./docs/screenshot.png)
+### macOS: allow unsigned plugin
 
-### Dependencies
+Take My Headphones is not signed with an Apple Developer ID. macOS Gatekeeper will block it on first launch.
 
-```bash
-git submodule update --init --recursive
+**Option A — Finder:** Right-click the `.clap` bundle → Open → Open anyway.
 
-cd external/clap-1.2.7
-git checkout tags/1.2.7
-
-cd external/neural-amp-modeler-0.5.1
-git checkout tags/v0.5.1
-```
-
-### Build
+**Option B — Terminal:**
 
 ```bash
-just build
+xattr -dr com.apple.quarantine /path/to/take-my-headphones.clap
 ```
 
-### Validate plugin
-
-```bash
-clap-validator validate X
-clap-info X
-```
+This is a one-time step. It does not affect plugin functionality.
