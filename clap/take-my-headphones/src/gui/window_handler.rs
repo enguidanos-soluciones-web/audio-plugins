@@ -105,7 +105,7 @@ impl BaseWindowHandlers for WindowHandler {
             }
             Event::Mouse(MouseEvent::CursorMoved { position, .. }) => {
                 self.cursor_pos = position;
-                self.view.hit_test(position.x, position.y);
+                self.view.send_pointer_move(position.x, position.y);
                 EventStatus::Captured
             }
             Event::Window(WindowEvent::Resized(info)) => {

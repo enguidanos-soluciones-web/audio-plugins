@@ -3,34 +3,6 @@
 version = 4
 
 [[package]]
-name = "__template"
-version = "0.1.0"
-dependencies = [
- "anyrender_vello",
- "arc-swap",
- "baseview",
- "bindgen",
- "blitz-dom",
- "blitz-paint",
- "blitz-traits",
- "crossbeam-queue",
- "cxx",
- "cxx-build",
- "dioxus",
- "dioxus-core",
- "dioxus-native-dom",
- "keyboard-types 0.7.0",
- "objc",
- "pollster",
- "raw-window-handle 0.5.2",
- "rfd",
- "strum",
- "strum_macros",
- "vello",
- "wgpu",
-]
-
-[[package]]
 name = "accesskit"
 version = "0.24.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -98,9 +70,9 @@ checksum = "7f202df86484c868dbad7eaa557ef785d5c66295e41b460ef922eca0723b842c"
 
 [[package]]
 name = "anyrender"
-version = "0.8.0"
+version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bf4f4f85f41e104c77b0beb5f9161bd674ce1b8deeb25b7900668ac13cb8b8b6"
+checksum = "0daa61a2591224cf663c44e8ef26a8b9e1aecc3ec3dec2b8d3eed9bf786ec181"
 dependencies = [
  "kurbo",
  "peniko",
@@ -109,17 +81,19 @@ dependencies = [
 
 [[package]]
 name = "anyrender_vello"
-version = "0.8.0"
+version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "629550801a5fc93061e38423a183de3ba6b2a8f112177707990a7966d84a3950"
+checksum = "f8b378f986f75c1ee1f9107af65cab7eba07bc8da000e5364b5bf9306bb43704"
 dependencies = [
  "anyrender",
  "debug_timer 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "futures-channel",
  "kurbo",
  "peniko",
  "pollster",
  "rustc-hash 2.1.2",
  "vello",
+ "wasm-bindgen-futures",
  "wgpu",
  "wgpu_context",
 ]
@@ -281,9 +255,10 @@ dependencies = [
 [[package]]
 name = "blitz-dom"
 version = "0.3.0-alpha.2"
-source = "git+https://github.com/DioxusLabs/blitz#c7079257d1dc2b1b2932a1eda8d53a5f505673d3"
+source = "git+https://github.com/DioxusLabs/blitz#13b3df692da8357aff1de8669773402d3d5ac0e0"
 dependencies = [
  "accesskit",
+ "anyrender",
  "app_units",
  "atomic_refcell",
  "bitflags 2.11.1",
@@ -316,13 +291,14 @@ dependencies = [
  "thread_local",
  "url",
  "usvg",
+ "web-time",
  "wuff",
 ]
 
 [[package]]
 name = "blitz-paint"
 version = "0.3.0-alpha.2"
-source = "git+https://github.com/DioxusLabs/blitz#c7079257d1dc2b1b2932a1eda8d53a5f505673d3"
+source = "git+https://github.com/DioxusLabs/blitz#13b3df692da8357aff1de8669773402d3d5ac0e0"
 dependencies = [
  "anyrender",
  "blitz-dom",
@@ -339,7 +315,7 @@ dependencies = [
 [[package]]
 name = "blitz-traits"
 version = "0.3.0-alpha.2"
-source = "git+https://github.com/DioxusLabs/blitz#c7079257d1dc2b1b2932a1eda8d53a5f505673d3"
+source = "git+https://github.com/DioxusLabs/blitz#13b3df692da8357aff1de8669773402d3d5ac0e0"
 dependencies = [
  "bitflags 2.11.1",
  "bytes",
@@ -995,7 +971,7 @@ checksum = "da220af51a1a335e9a930beaaef53d261e41ea9eecfb3d973a3ddae1a7284b9c"
 [[package]]
 name = "debug_timer"
 version = "0.1.3"
-source = "git+https://github.com/DioxusLabs/blitz#c7079257d1dc2b1b2932a1eda8d53a5f505673d3"
+source = "git+https://github.com/DioxusLabs/blitz#13b3df692da8357aff1de8669773402d3d5ac0e0"
 
 [[package]]
 name = "derive_more"
@@ -1277,7 +1253,7 @@ dependencies = [
 [[package]]
 name = "dioxus-native-dom"
 version = "0.7.0"
-source = "git+https://github.com/DioxusLabs/blitz#c7079257d1dc2b1b2932a1eda8d53a5f505673d3"
+source = "git+https://github.com/DioxusLabs/blitz#13b3df692da8357aff1de8669773402d3d5ac0e0"
 dependencies = [
  "blitz-dom",
  "blitz-traits",
@@ -3881,7 +3857,7 @@ checksum = "850ac3401667d004d4a13f9c93dc6d9fe67044c9bfdaf5f1519ff136ed68fbab"
 [[package]]
 name = "stylo_taffy"
 version = "0.3.0-alpha.2"
-source = "git+https://github.com/DioxusLabs/blitz#c7079257d1dc2b1b2932a1eda8d53a5f505673d3"
+source = "git+https://github.com/DioxusLabs/blitz#13b3df692da8357aff1de8669773402d3d5ac0e0"
 dependencies = [
  "stylo",
  "stylo_atoms",
@@ -4005,6 +3981,7 @@ dependencies = [
 name = "take-my-headphones"
 version = "1.0.4"
 dependencies = [
+ "anyrender",
  "anyrender_vello",
  "arc-swap",
  "baseview",
@@ -4657,6 +4634,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "web-time"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5a6580f308b1fad9207618087a65c04e7a10bc77e02c8e84e9b00dd4b12fa0bb"
+dependencies = [
+ "js-sys",
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "web_atoms"
 version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4820,9 +4807,9 @@ dependencies = [
 
 [[package]]
 name = "wgpu_context"
-version = "0.4.0"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "51d6ffedd8185fb255c6adf946591cb3378544d50e4bc1756aee18297e313ba6"
+checksum = "afffd50d505162b8db11c1351e724f40578f081da559a90c244ff3782e65f178"
 dependencies = [
  "futures-intrusive",
  "wgpu",

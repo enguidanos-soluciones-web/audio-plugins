@@ -297,10 +297,7 @@ jobs:
             Download `*-macos-universal.pkg` and double-click to install.
             The installer places the plugin in `/Library/Audio/Plug-Ins/CLAP/` (requires admin password).
 
-            > **Unsigned plugin:** macOS may block it. Right-click the `.pkg` → Open, or run:
-            > ```bash
-            > xattr -dr com.apple.quarantine /Library/Audio/Plug-Ins/CLAP/*.clap
-            > ```
+            > **Unsigned plugin:** macOS will block it. Go to **System Settings → Privacy & Security** and click **"Open Anyway"**.
 
             ### Windows (recommended)
             Download `*-windows-x86_64.exe` and run the installer.

@@ -15,4 +15,9 @@
 
 pub mod dropdown;
 pub mod header;
-pub mod parameters;
+pub mod main;
+pub mod param_angle_knob;
+pub mod param_center_knob;
+pub mod param_cutoff_knob;
+pub mod param_gain_knob;
+pub mod param_xfeed_knob;

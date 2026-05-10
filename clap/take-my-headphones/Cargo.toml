@@ -10,6 +10,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 arc-swap = { workspace = true }
+anyrender = { workspace = true }
 anyrender_vello = { workspace = true }
 baseview = { workspace = true }
 blitz-dom = { workspace = true }

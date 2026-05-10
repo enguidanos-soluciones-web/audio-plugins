@@ -14,8 +14,14 @@
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 use crate::{
-    gestures::drag::ActiveDrag,
-    gui::app::{components::dropdown::Dropdown, dispatcher::Dispatcher, state::AppState},
+    gui::app::{
+        components::{
+            dropdown::Dropdown, param_angle_knob::ParamAngleKnob, param_center_knob::ParamCenterKnob, param_cutoff_knob::ParamCutoffKnob,
+            param_gain_knob::ParamGainKnob, param_xfeed_knob::ParamXFeedKnob,
+        },
+        dispatcher::Dispatcher,
+        state::AppState,
+    },
     parameters::{
         Parameter, Range, Select, angle::Angle, calibration_mode::CalibrationMode, center::Center, cutoff::Cutoff, gain::Gain,
         lrswap::LRSwap, phase::Phase, solo::Solo, xfeed::XFeed,
@@ -25,11 +31,9 @@ use crate::{
 use dioxus::prelude::*;
 
 #[component]
-pub fn Parameters() -> Element {
+pub fn Main() -> Element {
     let state = consume_context::<Signal<AppState>>();
     let dispatcher = consume_context::<Dispatcher>();
-
-    let mut drag = consume_context::<Signal<Option<ActiveDrag>>>();
 
     let cutoff_val = Parameter::<Cutoff, Range>::format_value(state.read().params[Parameter::<Cutoff, Range>::ID]);
     let xfeed_val = Parameter::<XFeed, Range>::format_value(state.read().params[Parameter::<XFeed, Range>::ID]);
@@ -92,128 +96,38 @@ pub fn Parameters() -> Element {
             div {
                 class: "flex-1 flex items-center justify-center gap-10 py-6",
 
-                // Cutoff knob
                 div {
                     class: "flex flex-col items-center gap-2.5",
                     span { class: "text-amber-500 text-sm", "{cutoff_val} Hz" }
-                    div {
-                        id: "cutoff",
-                        class: "w-20 h-20",
-                        onmousedown: {
-                            let state = state.clone();
-                            let dispatcher = dispatcher.clone();
-                            move |e| {
-                                dispatcher(GuiRequest::BeginGesture(Parameter::<Cutoff, Range>::ID));
-                                let coords = e.data().client_coordinates();
-                                let raw = state.read().params[Parameter::<Cutoff, Range>::ID];
-                                drag.set(ActiveDrag::from_index(Parameter::<Cutoff, Range>::ID, coords.x, coords.y, raw));
-                            }
-                        },
-                        ondoubleclick: {
-                            let dispatcher = dispatcher.clone();
-                            move |_| dispatcher(GuiRequest::ResetParam(Parameter::<Cutoff, Range>::ID))
-                        },
-                    }
+                    ParamCutoffKnob {}
                     span { class: "text-xs font-semibold tracking-widest uppercase text-neutral-400", "Cutoff" }
                 }
 
-                // XFeed knob
                 div {
                     class: "flex flex-col items-center gap-2.5",
                     span { class: "text-amber-500 text-sm", "{xfeed_val} dB" }
-                    div {
-                        id: "xfeed",
-                        class: "w-20 h-20",
-                        onmousedown: {
-                            let state = state.clone();
-                            let dispatcher = dispatcher.clone();
-                            move |e| {
-                                dispatcher(GuiRequest::BeginGesture(Parameter::<XFeed, Range>::ID));
-                                let coords = e.data().client_coordinates();
-                                let raw = state.read().params[Parameter::<XFeed, Range>::ID];
-                                drag.set(ActiveDrag::from_index(Parameter::<XFeed, Range>::ID, coords.x, coords.y, raw));
-                            }
-                        },
-                        ondoubleclick: {
-                            let dispatcher = dispatcher.clone();
-                            move |_| dispatcher(GuiRequest::ResetParam(Parameter::<XFeed, Range>::ID))
-                        },
-                    }
+                    ParamXFeedKnob {}
                     span { class: "text-xs font-semibold tracking-widest uppercase text-neutral-400", "Crossfeed" }
                 }
 
-                // Angle knob
                 div {
                     class: "flex flex-col items-center gap-2.5",
                     span { class: "text-amber-500 text-sm", "{angle_val}°" }
-                    div {
-                        id: "angle",
-                        class: "w-20 h-20",
-                        onmousedown: {
-                            let state = state.clone();
-                            let dispatcher = dispatcher.clone();
-                            move |e| {
-                                dispatcher(GuiRequest::BeginGesture(Parameter::<Angle, Range>::ID));
-                                let coords = e.data().client_coordinates();
-                                let raw = state.read().params[Parameter::<Angle, Range>::ID];
-                                drag.set(ActiveDrag::from_index(Parameter::<Angle, Range>::ID, coords.x, coords.y, raw));
-                            }
-                        },
-                        ondoubleclick: {
-                            let dispatcher = dispatcher.clone();
-                            move |_| dispatcher(GuiRequest::ResetParam(Parameter::<Angle, Range>::ID))
-                        },
-                    }
+                    ParamAngleKnob {}
                     span { class: "text-xs font-semibold tracking-widest uppercase text-neutral-400", "Angle" }
                 }
 
-                // Center knob
                 div {
                     class: "flex flex-col items-center gap-2.5",
                     span { class: "text-amber-500 text-sm", "{center_val} dB" }
-                    div {
-                        id: "center",
-                        class: "w-20 h-20",
-                        onmousedown: {
-                            let state = state.clone();
-                            let dispatcher = dispatcher.clone();
-                            move |e| {
-                                dispatcher(GuiRequest::BeginGesture(Parameter::<Center, Range>::ID));
-                                let coords = e.data().client_coordinates();
-                                let raw = state.read().params[Parameter::<Center, Range>::ID];
-                                drag.set(ActiveDrag::from_index(Parameter::<Center, Range>::ID, coords.x, coords.y, raw));
-                            }
-                        },
-                        ondoubleclick: {
-                            let dispatcher = dispatcher.clone();
-                            move |_| dispatcher(GuiRequest::ResetParam(Parameter::<Center, Range>::ID))
-                        },
-                    }
+                    ParamCenterKnob {}
                     span { class: "text-xs font-semibold tracking-widest uppercase text-neutral-400", "Center" }
                 }
 
-                // Gain knob
                 div {
                     class: "flex flex-col items-center gap-2.5",
                     span { class: "text-amber-500 text-sm", "{gain_val} dB" }
-                    div {
-                        id: "gain",
-                        class: "w-20 h-20",
-                        onmousedown: {
-                            let state = state.clone();
-                            let dispatcher = dispatcher.clone();
-                            move |e| {
-                                dispatcher(GuiRequest::BeginGesture(Parameter::<Gain, Range>::ID));
-                                let coords = e.data().client_coordinates();
-                                let raw = state.read().params[Parameter::<Gain, Range>::ID];
-                                drag.set(ActiveDrag::from_index(Parameter::<Gain, Range>::ID, coords.x, coords.y, raw));
-                            }
-                        },
-                        ondoubleclick: {
-                            let dispatcher = dispatcher.clone();
-                            move |_| dispatcher(GuiRequest::ResetParam(Parameter::<Gain, Range>::ID))
-                        },
-                    }
+                    ParamGainKnob {}
                     span { class: "text-xs font-semibold tracking-widest uppercase text-neutral-400", "Gain" }
                 }
             }

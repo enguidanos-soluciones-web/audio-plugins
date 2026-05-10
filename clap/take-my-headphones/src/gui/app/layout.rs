@@ -16,7 +16,7 @@
 use crate::{
     gestures::drag::ActiveDrag,
     gui::app::{
-        components::{header::Header, parameters::Parameters},
+        components::{header::Header, main::Main},
         dispatcher::Dispatcher,
     },
     state::GuiRequest,
@@ -76,7 +76,7 @@ pub fn Layout() -> Element {
                 drag_last_dispatch.set(None);
             },
             Header {}
-            Parameters {}
+            Main {}
         }
     }
 }

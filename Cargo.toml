@@ -1,7 +1,6 @@
 [workspace]
 resolver = "3"
 members = [
-    "clap/__template",
     "clap/take-my-headphones"
 ]
 
@@ -19,10 +18,11 @@ overflow-checks = false
 
 [workspace.dependencies]
 arc-swap = "1.9.1"
-anyrender_vello = "0.8"
+anyrender = "0.9"
+anyrender_vello = "0.9"
 baseview = { git = "https://github.com/RustAudio/baseview" }
-blitz-dom = { git = "https://github.com/DioxusLabs/blitz" }
-blitz-paint = { git = "https://github.com/DioxusLabs/blitz", default-features = false }
+blitz-dom = { git = "https://github.com/DioxusLabs/blitz", features = ["custom-widget"] }
+blitz-paint = { git = "https://github.com/DioxusLabs/blitz", default-features = false, features = ["custom-widget"] }
 blitz-traits = { git = "https://github.com/DioxusLabs/blitz", default-features = false }
 dioxus-native-dom = { git = "https://github.com/DioxusLabs/blitz", default-features = false, features = ["system-fonts"] }
 dioxus = { version = "0.7.7", features = ["macro"] }

@@ -14,12 +14,8 @@
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 use crate::{
-    gui::{
-        HitTarget,
-        app::{dispatcher::Dispatcher, layout::Layout, state::AppState},
-        widget::Widget,
-    },
-    parameters::{Parameter, Range, angle::Angle, any::PARAMS_COUNT, center::Center, cutoff::Cutoff, gain::Gain, xfeed::XFeed},
+    gui::app::{dispatcher::Dispatcher, layout::Layout, state::AppState},
+    parameters::any::PARAMS_COUNT,
     state::GUIShared,
 };
 use anyrender_vello::VelloScenePainter;
@@ -40,9 +36,7 @@ pub struct View {
     pub doc: DioxusDocument,
     pub app_state: Signal<AppState>,
     pub pointer: (f64, f64),
-    pub element_at_pointer: Option<HitTarget>,
     pub held_buttons: MouseEventButtons,
-    pub widgets: &'static [&'static dyn Widget],
 }
 
 impl View {
@@ -75,21 +69,11 @@ impl View {
             inner.resolve(0.0);
         }
 
-        static WIDGETS: &[&dyn Widget] = &[
-            &Parameter::<Cutoff, Range>::new(),
-            &Parameter::<XFeed, Range>::new(),
-            &Parameter::<Center, Range>::new(),
-            &Parameter::<Angle, Range>::new(),
-            &Parameter::<Gain, Range>::new(),
-        ];
-
         Self {
             doc,
             app_state,
             pointer: (0.0, 0.0),
-            element_at_pointer: None,
             held_buttons: MouseEventButtons::None,
-            widgets: WIDGETS,
         }
     }
 
@@ -138,32 +122,11 @@ impl View {
         }
     }
 
-    /// Called on every CursorMoved event. Single source of truth for pointer position
-    /// and hit testing — sets both `self.pointer` and `self.element_at_pointer`.
-    pub fn hit_test(&mut self, x: f64, y: f64) {
+    /// Called on every CursorMoved event. Forwards the pointer position to the DOM.
+    pub fn send_pointer_move(&mut self, x: f64, y: f64) {
         self.pointer = (x, y);
-        self.element_at_pointer = None;
-
         let ui_event = UiEvent::PointerMove(self.make_pointer_event(x, y, MouseEventButton::Main));
         self.doc.handle_ui_event(ui_event);
-
-        let inner = self.doc.inner();
-        let Some(hit) = inner.hit(x as f32, y as f32) else {
-            return;
-        };
-
-        let mut node_id = Some(hit.node_id);
-
-        while let Some(id) = node_id {
-            for widget in self.widgets {
-                if inner.get_element_by_id(widget.dom_id()) == Some(id) {
-                    self.element_at_pointer = Some(HitTarget::Param(widget.param_id()));
-                    return;
-                }
-            }
-
-            node_id = inner.get_node(id).and_then(|n| n.parent);
-        }
     }
 
     pub fn render(&mut self, scene: &mut Scene, state: &GUIShared, parameters_values: &[f64; PARAMS_COUNT]) {
@@ -177,12 +140,12 @@ impl View {
         }
 
         {
-            let inner = self.doc.inner();
-            let viewport = inner.viewport().clone();
+            let viewport = self.doc.inner().viewport().clone();
+            let mut inner = self.doc.inner_mut();
             let mut painter = VelloScenePainter::new(scene);
             paint_scene(
                 &mut painter,
-                &*inner,
+                &mut *inner,
                 viewport.scale_f64(),
                 viewport.window_size.0,
                 viewport.window_size.1,
@@ -191,29 +154,6 @@ impl View {
             );
         }
 
-        self.draw_widgets(scene, parameters_values);
-    }
-
-    pub fn draw_widget(&mut self, scene: &mut Scene, widget: &dyn Widget, value: f64) {
-        let inner = self.doc.inner();
-        let Some(node_id) = inner.get_element_by_id(widget.dom_id()) else {
-            return;
-        };
-
-        let Some(rect) = inner.get_client_bounding_rect(node_id) else {
-            return;
-        };
-
-        drop(inner);
-
-        widget.draw(scene, (rect.x, rect.y), (rect.width, rect.height), self.pointer, value);
-    }
-
-    pub fn draw_widgets(&mut self, scene: &mut Scene, parameters_values: &[f64; PARAMS_COUNT]) {
-        for widget in self.widgets {
-            self.draw_widget(scene, *widget, parameters_values[widget.param_id()]);
-        }
-        // CalibrationMode renders as a dropdown — handled in the Dioxus component, not here.
     }
 
     pub fn update_app_state(&mut self, _state: &GUIShared, parameters_values: &[f64; PARAMS_COUNT]) {
