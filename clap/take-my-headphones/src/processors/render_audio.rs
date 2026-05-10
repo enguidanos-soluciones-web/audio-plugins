@@ -1,8 +1,8 @@
 use crate::{
     dsp::itd::ItdDelay,
     parameters::{
-        Parameter, Range, Select, angle::Angle, calibration_mode::CalibrationMode, center::Center, cutoff::Cutoff, lrswap::LRSwap,
-        phase::Phase, solo::Solo, xfeed::XFeed,
+        Parameter, Range, Select, angle::Angle, calibration_mode::CalibrationMode, center::Center, cutoff::Cutoff, gain::Gain,
+        lrswap::LRSwap, phase::Phase, solo::Solo, xfeed::XFeed,
     },
     state::AudioThreadState,
 };
@@ -27,6 +27,7 @@ pub fn render_audio_f64(
     let lrswap = snapshot.values[Parameter::<LRSwap, Select>::ID].round() as u8;
     let solo = snapshot.values[Parameter::<Solo, Select>::ID].round() as u8;
     let phase = snapshot.values[Parameter::<Phase, Select>::ID].round() as u8;
+    let makeup_gain = 10f64.powf(snapshot.values[Parameter::<Gain, Range>::ID] / 20.0);
 
     audio_thread.bs2b.update_coeffs(cutoff, xfeed, audio_thread.sample_rate);
 
@@ -89,8 +90,9 @@ pub fn render_audio_f64(
             _ => (wet_l, wet_r),
         };
 
-        out_l[i] = wet_l;
-        out_r[i] = wet_r;
+        // 6. Makeup gain (compensates level loss from bs2b/center processing)
+        out_l[i] = wet_l * makeup_gain;
+        out_r[i] = wet_r * makeup_gain;
     }
 }
 
@@ -114,6 +116,7 @@ pub fn render_audio_f32(
     let lrswap = snapshot.values[Parameter::<LRSwap, Select>::ID].round() as u8;
     let solo = snapshot.values[Parameter::<Solo, Select>::ID].round() as u8;
     let phase = snapshot.values[Parameter::<Phase, Select>::ID].round() as u8;
+    let makeup_gain = 10f64.powf(snapshot.values[Parameter::<Gain, Range>::ID] / 20.0);
 
     audio_thread.bs2b.update_coeffs(cutoff, xfeed, audio_thread.sample_rate);
 
@@ -163,7 +166,7 @@ pub fn render_audio_f32(
             _ => (wet_l, wet_r),
         };
 
-        out_l[i] = wet_l as f32;
-        out_r[i] = wet_r as f32;
+        out_l[i] = (wet_l * makeup_gain) as f32;
+        out_r[i] = (wet_r * makeup_gain) as f32;
     }
 }

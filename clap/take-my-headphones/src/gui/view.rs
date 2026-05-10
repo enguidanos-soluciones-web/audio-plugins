@@ -4,7 +4,7 @@ use crate::{
         app::{dispatcher::Dispatcher, layout::Layout, state::AppState},
         widget::Widget,
     },
-    parameters::{Parameter, Range, angle::Angle, any::PARAMS_COUNT, center::Center, cutoff::Cutoff, xfeed::XFeed},
+    parameters::{Parameter, Range, angle::Angle, any::PARAMS_COUNT, center::Center, cutoff::Cutoff, gain::Gain, xfeed::XFeed},
     state::GUIShared,
 };
 use anyrender_vello::VelloScenePainter;
@@ -65,6 +65,7 @@ impl View {
             &Parameter::<XFeed, Range>::new(),
             &Parameter::<Center, Range>::new(),
             &Parameter::<Angle, Range>::new(),
+            &Parameter::<Gain, Range>::new(),
         ];
 
         Self {

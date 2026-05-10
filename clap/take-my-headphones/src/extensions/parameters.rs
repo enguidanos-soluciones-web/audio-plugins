@@ -8,6 +8,7 @@ use crate::{
         calibration_mode::CalibrationMode,
         center::Center,
         cutoff::Cutoff,
+        gain::Gain,
         lrswap::LRSwap,
         phase::Phase,
         solo::Solo,
@@ -38,20 +39,6 @@ pub extern "C" fn count(plugin: *const clap_plugin_t) -> u32 {
     PARAMS_COUNT as u32
 }
 
-/// Display order for parameters in host native UIs (REAPER, etc.).
-/// Maps enumeration index → parameter ID.
-/// IDs stay stable (saved presets/automation unaffected); only display order changes.
-const PARAM_ORDER: [usize; PARAMS_COUNT] = [
-    Parameter::<Cutoff, Range>::ID,           // 0
-    Parameter::<XFeed, Range>::ID,            // 1
-    Parameter::<Angle, Range>::ID,            // 2
-    Parameter::<Center, Range>::ID,           // 3
-    Parameter::<LRSwap, Select>::ID,          // 4
-    Parameter::<Solo, Select>::ID,            // 5
-    Parameter::<Phase, Select>::ID,           // 6
-    Parameter::<CalibrationMode, Select>::ID, // 7
-];
-
 // [main-thread]
 pub extern "C" fn get_info(plugin: *const clap_plugin_t, index: u32, information: *mut clap_param_info_t) -> bool {
     let plugin_ref = unsafe { ((*plugin).plugin_data as *const Plugin).as_ref_unchecked() };
@@ -59,9 +46,8 @@ pub extern "C" fn get_info(plugin: *const clap_plugin_t, index: u32, information
     let main_thread = plugin_ref.main_thread.as_ref().expect("main thread not initialized");
     main_thread.assert_main_thread();
 
-    let Some(&id) = PARAM_ORDER.get(index as usize) else {
-        return false;
-    };
+    // Parameter IDs equal their display index — no indirection needed.
+    let id = index as usize;
     let Ok(param) = AnyParameter::try_from(id) else {
         return false;
     };
@@ -126,6 +112,13 @@ pub extern "C" fn get_info(plugin: *const clap_plugin_t, index: u32, information
             new_information.default_value = inner.behave.def as f64;
             copy_cstr(&mut new_information.name, inner.name.as_bytes());
         }
+        AnyParameter::Gain { inner } => {
+            new_information.flags = CLAP_PARAM_IS_AUTOMATABLE;
+            new_information.min_value = inner.behave.min;
+            new_information.max_value = inner.behave.max;
+            new_information.default_value = inner.behave.def;
+            copy_cstr(&mut new_information.name, inner.name.as_bytes());
+        }
     }
 
     unsafe { std::ptr::write(information, new_information) };
@@ -170,6 +163,7 @@ pub extern "C" fn value_to_text(plugin: *const clap_plugin_t, id: clap_id, value
         Parameter::<XFeed, Range>::ID => write!(cursor, "{:.1} dB\0", value).is_ok(),
         Parameter::<Center, Range>::ID => write!(cursor, "{:.2} dB\0", value).is_ok(),
         Parameter::<Angle, Range>::ID => write!(cursor, "{:.0} deg\0", value).is_ok(),
+        Parameter::<Gain, Range>::ID => write!(cursor, "{:.1} dB\0", value).is_ok(),
         Parameter::<LRSwap, Select>::ID => write!(cursor, "{}\0", LRSwap::label(value.round() as u8)).is_ok(),
         Parameter::<Solo, Select>::ID => write!(cursor, "{}\0", Solo::label(value.round() as u8)).is_ok(),
         Parameter::<Phase, Select>::ID => write!(cursor, "{}\0", Phase::label(value.round() as u8)).is_ok(),

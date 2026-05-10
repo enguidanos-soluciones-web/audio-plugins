@@ -42,6 +42,11 @@ pub fn Header() -> Element {
                 "Take My Phones"
             }
 
+            span {
+                class: "text-neutral-500 text-xs whitespace-nowrap",
+                "Created by Cristian A. Enguídanos Nebot"
+            }
+
             div {
                 class: "flex items-center gap-2",
                 span { class: "text-neutral-500 text-xs uppercase tracking-widest", "Preset" }

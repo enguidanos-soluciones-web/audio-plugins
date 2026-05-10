@@ -2,8 +2,8 @@ use crate::{
     gestures::drag::ActiveDrag,
     gui::app::{components::dropdown::Dropdown, dispatcher::Dispatcher, state::AppState},
     parameters::{
-        Parameter, Range, Select, angle::Angle, calibration_mode::CalibrationMode, center::Center, cutoff::Cutoff, lrswap::LRSwap,
-        phase::Phase, solo::Solo, xfeed::XFeed,
+        Parameter, Range, Select, angle::Angle, calibration_mode::CalibrationMode, center::Center, cutoff::Cutoff, gain::Gain,
+        lrswap::LRSwap, phase::Phase, solo::Solo, xfeed::XFeed,
     },
     state::GuiRequest,
 };
@@ -20,6 +20,7 @@ pub fn Parameters() -> Element {
     let xfeed_val = Parameter::<XFeed, Range>::format_value(state.read().params[Parameter::<XFeed, Range>::ID]);
     let angle_val = Parameter::<Angle, Range>::format_value(state.read().params[Parameter::<Angle, Range>::ID]);
     let center_val = Parameter::<Center, Range>::format_value(state.read().params[Parameter::<Center, Range>::ID]);
+    let gain_val = Parameter::<Gain, Range>::format_value(state.read().params[Parameter::<Gain, Range>::ID]);
     let cal_value = state.read().params[Parameter::<CalibrationMode, Select>::ID].round() as usize;
     let lrswap_value = state.read().params[Parameter::<LRSwap, Select>::ID].round() as usize;
     let solo_value = state.read().params[Parameter::<Solo, Select>::ID].round() as usize;
@@ -52,11 +53,31 @@ pub fn Parameters() -> Element {
 
     rsx! {
         div {
-            class: "flex flex-col gap-8",
+            class: "flex flex-col",
 
+            // Row 0: Calibration dropdown — left-aligned above Cutoff/XFeed
             div {
-                class: "flex-1 flex items-center justify-center gap-10 py-8",
+                class: "flex items-center gap-2 px-8 pt-3 pb-1",
+                span { class: "text-neutral-500 text-xs uppercase tracking-widest", "Calibration" }
+                Dropdown {
+                    options: cal_options,
+                    selected: Some(cal_value),
+                    label: None,
+                    on_select: {
+                        let dispatcher = dispatcher.clone();
+                        move |i: usize| dispatcher(GuiRequest::SetParam(
+                            Parameter::<CalibrationMode, Select>::ID,
+                            i as f64,
+                        ))
+                    },
+                }
+            }
 
+            // Row 1: Knobs
+            div {
+                class: "flex-1 flex items-center justify-center gap-10 py-6",
+
+                // Cutoff knob
                 div {
                     class: "flex flex-col items-center gap-2.5",
                     span { class: "text-amber-500 text-sm", "{cutoff_val} Hz" }
@@ -81,6 +102,7 @@ pub fn Parameters() -> Element {
                     span { class: "text-xs font-semibold tracking-widest uppercase text-neutral-400", "Cutoff" }
                 }
 
+                // XFeed knob
                 div {
                     class: "flex flex-col items-center gap-2.5",
                     span { class: "text-amber-500 text-sm", "{xfeed_val} dB" }
@@ -105,6 +127,7 @@ pub fn Parameters() -> Element {
                     span { class: "text-xs font-semibold tracking-widest uppercase text-neutral-400", "Crossfeed" }
                 }
 
+                // Angle knob
                 div {
                     class: "flex flex-col items-center gap-2.5",
                     span { class: "text-amber-500 text-sm", "{angle_val}°" }
@@ -129,6 +152,7 @@ pub fn Parameters() -> Element {
                     span { class: "text-xs font-semibold tracking-widest uppercase text-neutral-400", "Angle" }
                 }
 
+                // Center knob
                 div {
                     class: "flex flex-col items-center gap-2.5",
                     span { class: "text-amber-500 text-sm", "{center_val} dB" }
@@ -153,81 +177,91 @@ pub fn Parameters() -> Element {
                     span { class: "text-xs font-semibold tracking-widest uppercase text-neutral-400", "Center" }
                 }
 
+                // Gain knob
                 div {
                     class: "flex flex-col items-center gap-2.5",
-                    span { class: "text-xs font-semibold tracking-widest uppercase text-neutral-400", "Calibration" }
+                    span { class: "text-amber-500 text-sm", "{gain_val} dB" }
+                    div {
+                        id: "gain",
+                        class: "w-20 h-20",
+                        onmousedown: {
+                            let state = state.clone();
+                            let dispatcher = dispatcher.clone();
+                            move |e| {
+                                dispatcher(GuiRequest::BeginGesture(Parameter::<Gain, Range>::ID));
+                                let coords = e.data().client_coordinates();
+                                let raw = state.read().params[Parameter::<Gain, Range>::ID];
+                                drag.set(ActiveDrag::from_index(Parameter::<Gain, Range>::ID, coords.x, coords.y, raw));
+                            }
+                        },
+                        ondoubleclick: {
+                            let dispatcher = dispatcher.clone();
+                            move |_| dispatcher(GuiRequest::ResetParam(Parameter::<Gain, Range>::ID))
+                        },
+                    }
+                    span { class: "text-xs font-semibold tracking-widest uppercase text-neutral-400", "Gain" }
+                }
+            }
+
+            // Row 2: Utility dropdowns
+            div {
+                class: "flex items-center justify-center gap-8 pb-4",
+
+                div {
+                    class: "flex items-center gap-2",
+                    span { class: "text-neutral-500 text-xs uppercase tracking-widest", "LR Swap" }
                     Dropdown {
-                        options: cal_options,
-                        selected: Some(cal_value),
+                        options: lrswap_options,
+                        selected: Some(lrswap_value),
                         label: None,
                         on_select: {
                             let dispatcher = dispatcher.clone();
-                            move |i: usize| dispatcher(GuiRequest::SetParam(
-                                Parameter::<CalibrationMode, Select>::ID,
-                                i as f64,
-                            ))
+                            move |i: usize| dispatcher(GuiRequest::SetParam(Parameter::<LRSwap, Select>::ID, i as f64))
+                        },
+                    }
+                }
+
+                div {
+                    class: "flex items-center gap-2",
+                    span { class: "text-neutral-500 text-xs uppercase tracking-widest", "Solo" }
+                    Dropdown {
+                        options: solo_options,
+                        selected: Some(solo_value),
+                        label: None,
+                        on_select: {
+                            let dispatcher = dispatcher.clone();
+                            move |i: usize| dispatcher(GuiRequest::SetParam(Parameter::<Solo, Select>::ID, i as f64))
+                        },
+                    }
+                }
+
+                div {
+                    class: "flex items-center gap-2",
+                    span { class: "text-neutral-500 text-xs uppercase tracking-widest", "Phase" }
+                    Dropdown {
+                        options: phase_options,
+                        selected: Some(phase_value),
+                        label: None,
+                        on_select: {
+                            let dispatcher = dispatcher.clone();
+                            move |i: usize| dispatcher(GuiRequest::SetParam(Parameter::<Phase, Select>::ID, i as f64))
                         },
                     }
                 }
             }
-        }
 
-        div {
-            class: "flex items-center justify-center gap-8 pb-4",
-
+            // Row 3: Calibration guide
             div {
-                class: "flex items-center gap-2",
-                span { class: "text-neutral-500 text-xs uppercase tracking-widest", "LR Swap" }
-                Dropdown {
-                    options: lrswap_options,
-                    selected: Some(lrswap_value),
-                    label: None,
-                    on_select: {
-                        let dispatcher = dispatcher.clone();
-                        move |i: usize| dispatcher(GuiRequest::SetParam(Parameter::<LRSwap, Select>::ID, i as f64))
-                    },
+                class: "px-8 py-3 border-t border-neutral-800 text-neutral-500 text-xs leading-relaxed",
+                p {
+                    class: "font-semibold text-neutral-400 mb-1",
+                    "Calibration guide"
                 }
+                p { "① Calibration → Continuous. Pink noise plays into the left ear only; the right ear receives only the crossed, LP-filtered signal. Set Solo → R: both ears now hear the crossfeed path in isolation with the direct signal removed. Adjust Cutoff until the tone is warm and natural — too high sounds nasal and bright, too low sounds muddy and dark." }
+                p { "② Still in Continuous. Set Solo → Off. Adjust XFeed until the blend between direct and crossed feels spatially open — enough bleed to move the image outside your head, not so much that it sounds artificial." }
+                p { "③ Calibration → Intermittent. Pink noise alternates L and R every 500 ms. Solo → Off. Adjust Angle until each burst feels like it originates outside your head at a natural speaker position. Too small collapses the image inward; too large pushes it unnaturally wide. The Angle knob maps linearly to ITD delay (0° = 0 μs, 75° = 635 μs)." }
+                p { "④ Calibration → Off. Play music. Adjust Center if the phantom center (vocals) sounds too dominant — lower values push it outward via M/S attenuation. Use Gain to compensate any perceived level reduction from the processing." }
             }
-
-            div {
-                class: "flex items-center gap-2",
-                span { class: "text-neutral-500 text-xs uppercase tracking-widest", "Solo" }
-                Dropdown {
-                    options: solo_options,
-                    selected: Some(solo_value),
-                    label: None,
-                    on_select: {
-                        let dispatcher = dispatcher.clone();
-                        move |i: usize| dispatcher(GuiRequest::SetParam(Parameter::<Solo, Select>::ID, i as f64))
-                    },
-                }
-            }
-
-            div {
-                class: "flex items-center gap-2",
-                span { class: "text-neutral-500 text-xs uppercase tracking-widest", "Phase" }
-                Dropdown {
-                    options: phase_options,
-                    selected: Some(phase_value),
-                    label: None,
-                    on_select: {
-                        let dispatcher = dispatcher.clone();
-                        move |i: usize| dispatcher(GuiRequest::SetParam(Parameter::<Phase, Select>::ID, i as f64))
-                    },
-                }
-            }
-        }
-
-        div {
-            class: "px-8 py-3 border-t border-neutral-800 text-neutral-500 text-xs leading-relaxed",
-            p {
-                class: "font-semibold text-neutral-400 mb-1",
-                "Calibration guide"
-            }
-            p { "① Calibration → Continuous. Pink noise plays into the left ear only; the right ear receives only the crossed, LP-filtered signal. Set Solo → R: both ears now hear the crossfeed path in isolation with the direct signal removed. Adjust Cutoff until the tone is warm and natural — too high sounds nasal and bright, too low sounds muddy and dark." }
-            p { "② Still in Continuous. Set Solo → Off. Adjust XFeed until the blend between direct and crossed feels spatially open — enough bleed to move the image outside your head, not so much that it sounds artificial." }
-            p { "③ Calibration → Intermittent. Pink noise alternates L and R every 500 ms. Solo → Off. Adjust Angle until each burst feels like it originates outside your head at a natural speaker position. Too small collapses the image inward; too large pushes it unnaturally wide. The Angle knob maps linearly to ITD delay (0° = 0 μs, 75° = 635 μs)." }
-            p { "④ Calibration → Off. Play music. Adjust Center if the phantom center (vocals) sounds too dominant — lower values push it outward via M/S attenuation. 0 dB = bs2b canonical, no center effect." }
         }
     }
 }

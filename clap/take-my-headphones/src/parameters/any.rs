@@ -1,9 +1,10 @@
 use super::{Parameter, Range, Select};
 use crate::parameters::{
-    angle::Angle, calibration_mode::CalibrationMode, center::Center, cutoff::Cutoff, lrswap::LRSwap, phase::Phase, solo::Solo, xfeed::XFeed,
+    angle::Angle, calibration_mode::CalibrationMode, center::Center, cutoff::Cutoff, gain::Gain, lrswap::LRSwap, phase::Phase, solo::Solo,
+    xfeed::XFeed,
 };
 
-pub const PARAMS_COUNT: usize = 8;
+pub const PARAMS_COUNT: usize = 9;
 
 pub enum AnyParameter {
     Cutoff { inner: Parameter<Cutoff, Range> },
@@ -14,6 +15,7 @@ pub enum AnyParameter {
     LRSwap { inner: Parameter<LRSwap, Select> },
     Solo { inner: Parameter<Solo, Select> },
     Phase { inner: Parameter<Phase, Select> },
+    Gain { inner: Parameter<Gain, Range> },
 }
 
 impl TryFrom<usize> for AnyParameter {
@@ -44,6 +46,9 @@ impl TryFrom<usize> for AnyParameter {
             }),
             Parameter::<Phase, Select>::ID => Ok(AnyParameter::Phase {
                 inner: Parameter::<Phase, Select>::new(),
+            }),
+            Parameter::<Gain, Range>::ID => Ok(AnyParameter::Gain {
+                inner: Parameter::<Gain, Range>::new(),
             }),
             _ => Err(()),
         }

@@ -11,6 +11,7 @@ impl ActiveClick {
             AnyParameter::XFeed { inner } => inner.gestures,
             AnyParameter::Center { inner } => inner.gestures,
             AnyParameter::Angle { inner } => inner.gestures,
+            AnyParameter::Gain { inner } => inner.gestures,
             AnyParameter::CalibrationMode { inner } => inner.gestures,
             AnyParameter::LRSwap { inner } => inner.gestures,
             AnyParameter::Solo { inner } => inner.gestures,
@@ -38,6 +39,7 @@ impl ActiveClick {
             AnyParameter::Angle { inner } if inner.gestures & PARAMETER_GESTURE_DOUBLE_CLICK != 0 => {
                 inner.as_clickable()?.on_double_click()
             }
+            AnyParameter::Gain { inner } if inner.gestures & PARAMETER_GESTURE_DOUBLE_CLICK != 0 => inner.as_clickable()?.on_double_click(),
             AnyParameter::CalibrationMode { inner } if inner.gestures & PARAMETER_GESTURE_DOUBLE_CLICK != 0 => {
                 inner.as_clickable()?.on_double_click()
             }

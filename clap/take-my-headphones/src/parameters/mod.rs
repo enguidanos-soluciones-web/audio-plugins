@@ -3,6 +3,7 @@ pub mod any;
 pub mod calibration_mode;
 pub mod center;
 pub mod cutoff;
+pub mod gain;
 pub mod lrswap;
 pub mod phase;
 pub mod solo;

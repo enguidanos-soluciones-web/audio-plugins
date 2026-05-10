@@ -25,7 +25,7 @@ impl CalibrationMode {
 }
 
 impl Parameter<CalibrationMode, Select> {
-    pub const ID: usize = 2;
+    pub const ID: usize = 8;
 
     pub const fn new() -> Self {
         Self {

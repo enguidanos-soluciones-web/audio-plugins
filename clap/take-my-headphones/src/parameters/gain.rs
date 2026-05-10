@@ -12,20 +12,20 @@ use vello::{
 };
 
 #[derive(Clone, Copy)]
-pub struct Angle;
+pub struct Gain;
 
-impl Parameter<Angle, Range> {
-    pub const ID: usize = 2;
+impl Parameter<Gain, Range> {
+    pub const ID: usize = 4;
 
     pub const fn new() -> Self {
         Self {
             id: Self::ID,
-            name: "Angle",
+            name: "Gain",
             gestures: PARAMETER_GESTURE_DRAG | PARAMETER_GESTURE_DOUBLE_CLICK,
             behave: Range {
                 min: 0.0,
-                max: 75.0,
-                def: 30.0,
+                max: 12.0,
+                def: 0.0,
             },
             _marker_type: std::marker::PhantomData,
             _marker_behaviour: std::marker::PhantomData,
@@ -33,28 +33,28 @@ impl Parameter<Angle, Range> {
     }
 
     pub fn format_value(value: f64) -> String {
-        format!("{:.0}", value)
+        format!("{:.1}", value)
     }
 
-    pub fn as_draggable(&self) -> Option<ParameterDraggable<'_, Angle, Range>> {
+    pub fn as_draggable(&self) -> Option<ParameterDraggable<'_, Gain, Range>> {
         if self.gestures & PARAMETER_GESTURE_DRAG != 0 {
-            Some(ParameterDraggable::<Angle, Range>::new(self))
+            Some(ParameterDraggable::<Gain, Range>::new(self))
         } else {
             None
         }
     }
 
-    pub fn as_clickable(&self) -> Option<ParameterClickable<'_, Angle, Range>> {
+    pub fn as_clickable(&self) -> Option<ParameterClickable<'_, Gain, Range>> {
         if self.gestures & PARAMETER_GESTURE_DOUBLE_CLICK != 0 {
-            Some(ParameterClickable::<Angle, Range>::new(self))
+            Some(ParameterClickable::<Gain, Range>::new(self))
         } else {
             None
         }
     }
 }
 
-impl<'a> ParameterDraggable<'a, Angle, Range> {
-    pub fn new(inner: &'a Parameter<Angle, Range>) -> Self {
+impl<'a> ParameterDraggable<'a, Gain, Range> {
+    pub fn new(inner: &'a Parameter<Gain, Range>) -> Self {
         Self {
             inner,
             _marker_type: std::marker::PhantomData,
@@ -74,8 +74,8 @@ impl<'a> ParameterDraggable<'a, Angle, Range> {
     }
 }
 
-impl<'a> ParameterClickable<'a, Angle, Range> {
-    pub fn new(inner: &'a Parameter<Angle, Range>) -> Self {
+impl<'a> ParameterClickable<'a, Gain, Range> {
+    pub fn new(inner: &'a Parameter<Gain, Range>) -> Self {
         Self {
             inner,
             _marker_type: std::marker::PhantomData,
@@ -91,9 +91,9 @@ impl<'a> ParameterClickable<'a, Angle, Range> {
     }
 }
 
-impl Widget for Parameter<Angle, Range> {
+impl Widget for Parameter<Gain, Range> {
     fn dom_id(&self) -> &'static str {
-        "angle"
+        "gain"
     }
     fn param_id(&self) -> usize {
         self.id
