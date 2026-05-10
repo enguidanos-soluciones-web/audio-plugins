@@ -109,10 +109,22 @@ jobs:
       - name: Zip
         run: zip -r "${{ github.ref_name }}-macos-universal.zip" "${{ env.PLUGIN_NAME }}.clap"
 
+      - name: Build PKG installer
+        run: |
+          VERSION="${{ github.ref_name }}"
+          VERSION="${VERSION##*-v}"
+          bash "clap/${{ env.CRATE_NAME }}/installer/macos.sh" \
+            --bundle  "${{ env.PLUGIN_NAME }}.clap" \
+            --id      "${{ env.BUNDLE_ID }}" \
+            --version "$VERSION" \
+            --out     "${{ github.ref_name }}-macos-universal.pkg"
+
       - uses: actions/upload-artifact@v4
         with:
           name: macos-universal
-          path: ${{ github.ref_name }}-macos-universal.zip
+          path: |
+            ${{ github.ref_name }}-macos-universal.zip
+            ${{ github.ref_name }}-macos-universal.pkg
 
   # ── Linux x86_64 ─────────────────────────────────────────────────────────────
   build-linux-x86_64:
@@ -251,10 +263,21 @@ jobs:
         shell: pwsh
         run: Compress-Archive -Path "${{ env.PLUGIN_NAME }}.clap" -DestinationPath "${{ github.ref_name }}-windows-x86_64.zip"
 
+      - name: Build NSIS installer
+        shell: pwsh
+        run: |
+          $version = ("${{ github.ref_name }}" -split '-v')[-1]
+          $pluginFile = Join-Path $PWD "${{ env.PLUGIN_NAME }}.clap"
+          $outFile    = Join-Path $PWD "${{ github.ref_name }}-windows-x86_64.exe"
+          $script     = Join-Path $PWD "clap" "${{ env.CRATE_NAME }}" "installer" "windows.nsi"
+          makensis /DPLUGIN_FILE="$pluginFile" /DDISPLAY_NAME="Take My Headphones" /DVERSION="$version" /DOUTFILE="$outFile" $script
+
       - uses: actions/upload-artifact@v4
         with:
           name: windows-x86_64
-          path: ${{ github.ref_name }}-windows-x86_64.zip
+          path: |
+            ${{ github.ref_name }}-windows-x86_64.zip
+            ${{ github.ref_name }}-windows-x86_64.exe
 
   # ── GitHub Release ───────────────────────────────────────────────────────────
   release:
@@ -282,18 +305,29 @@ jobs:
           body: |
             ## Installation
 
-            Download the file for your platform and place it in your CLAP plugin folder:
+            ### macOS (recommended)
+            Download `*-macos-universal.pkg` and double-click to install.
+            The installer places the plugin in `/Library/Audio/Plug-Ins/CLAP/` (requires admin password).
+
+            > **Unsigned plugin:** macOS may block it. Right-click the `.pkg` → Open, or run:
+            > ```bash
+            > xattr -dr com.apple.quarantine /Library/Audio/Plug-Ins/CLAP/*.clap
+            > ```
+
+            ### Windows (recommended)
+            Download `*-windows-x86_64.exe` and run the installer.
+            Installs to `C:\Program Files\Common Files\CLAP\` (requires admin).
+
+            > **Unsigned:** SmartScreen may warn. Click "More info → Run anyway".
+
+            ### Manual install
+            Download the `.zip` for your platform and place the `.clap` in your CLAP plugin folder:
 
             | Platform | Folder |
             |---|---|
-            | macOS | `~/Library/Audio/Plug-Ins/CLAP/` |
+            | macOS | `/Library/Audio/Plug-Ins/CLAP/` or `~/Library/Audio/Plug-Ins/CLAP/` |
             | Linux | `~/.clap/` |
             | Windows | `C:\Program Files\Common Files\CLAP\` |
-
-            **macOS users:** the plugin is unsigned. Run once in Terminal:
-            ```bash
-            xattr -dr com.apple.quarantine /path/to/*.clap
-            ```
-          files: artifacts/*.zip
+          files: artifacts/*
           draft: false
           prerelease: ${{ contains(github.ref_name, '-alpha') || contains(github.ref_name, '-beta') || contains(github.ref_name, '-rc') }}
