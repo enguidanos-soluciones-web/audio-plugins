@@ -4003,7 +4003,7 @@ dependencies = [
 
 [[package]]
 name = "take-my-headphones"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "anyrender_vello",
  "arc-swap",
