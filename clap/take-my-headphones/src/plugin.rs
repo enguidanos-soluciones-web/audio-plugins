@@ -225,19 +225,22 @@ pub unsafe extern "C" fn reset(plugin: *const clap_plugin) {
 
 // [thread-safe]
 pub unsafe extern "C" fn get_extension(_plugin: *const clap_plugin, id: *const c_char) -> *const c_void {
-    if unsafe { CStr::from_ptr(id) } == CLAP_EXT_AUDIO_PORTS {
+    let id = unsafe { CStr::from_ptr(id) };
+    if id == unsafe { CStr::from_ptr(CLAP_EXT_AUDIO_PORTS.as_ptr() as *const c_char) } {
         return &AUDIO_PORTS_EXT as *const _ as *const c_void;
     }
-    if unsafe { CStr::from_ptr(id) } == CLAP_EXT_PARAMS {
+    if id == unsafe { CStr::from_ptr(CLAP_EXT_PARAMS.as_ptr() as *const c_char) } {
         return &PARAMETERS_EXT as *const _ as *const c_void;
     }
-    if unsafe { CStr::from_ptr(id) } == CLAP_EXT_STATE {
+    if id == unsafe { CStr::from_ptr(CLAP_EXT_STATE.as_ptr() as *const c_char) } {
         return &STATE_EXT as *const _ as *const c_void;
     }
-    if unsafe { CStr::from_ptr(id) } == CLAP_EXT_GUI {
+    if id == unsafe { CStr::from_ptr(CLAP_EXT_GUI.as_ptr() as *const c_char) } {
         return &GUI_EXT as *const _ as *const c_void;
     }
-    if unsafe { CStr::from_ptr(id) } == CLAP_EXT_PRESET_LOAD || unsafe { CStr::from_ptr(id) } == CLAP_EXT_PRESET_LOAD_COMPAT {
+    if id == unsafe { CStr::from_ptr(CLAP_EXT_PRESET_LOAD.as_ptr() as *const c_char) }
+        || id == unsafe { CStr::from_ptr(CLAP_EXT_PRESET_LOAD_COMPAT.as_ptr() as *const c_char) }
+    {
         return &PRESET_LOAD_EXT as *const _ as *const c_void;
     }
 
@@ -320,7 +323,7 @@ pub unsafe extern "C" fn on_main_thread(plugin: *const clap_plugin) {
         let host = plugin_ref.host;
         let host_ref = unsafe { host.as_ref_unchecked() };
         if let Some(get_extension) = host_ref.get_extension {
-            let ext = unsafe { get_extension(host, CLAP_EXT_PARAMS.as_ptr()) };
+            let ext = unsafe { get_extension(host, CLAP_EXT_PARAMS.as_ptr() as *const c_char) };
             if !ext.is_null() {
                 let host_params = unsafe { (ext as *const clap_host_params_t).as_ref_unchecked() };
                 if let Some(rescan) = host_params.rescan {

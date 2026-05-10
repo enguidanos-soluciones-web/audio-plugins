@@ -37,7 +37,7 @@ unsafe extern "C" fn from_location(
     let host = plugin_ref.host;
     let host_ref = unsafe { host.as_ref_unchecked() };
     if let Some(get_extension) = host_ref.get_extension {
-        let ext = unsafe { get_extension(host, CLAP_EXT_PARAMS.as_ptr()) };
+        let ext = unsafe { get_extension(host, CLAP_EXT_PARAMS.as_ptr() as *const std::ffi::c_char) };
         if !ext.is_null() {
             let host_params = unsafe { (ext as *const clap_host_params_t).as_ref_unchecked() };
             if let Some(rescan) = host_params.rescan {

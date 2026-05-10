@@ -18,10 +18,12 @@ unsafe extern "C" fn entry_deinit() {}
 unsafe extern "C" fn entry_get_factory(factory_id: *const c_char) -> *const c_void {
     let id = unsafe { CStr::from_ptr(factory_id) };
 
-    if id == CLAP_PLUGIN_FACTORY_ID {
+    if id == unsafe { CStr::from_ptr(CLAP_PLUGIN_FACTORY_ID.as_ptr() as *const c_char) } {
         return &PLUGIN_FACTORY as *const _ as *const c_void;
     }
-    if id == CLAP_PRESET_DISCOVERY_FACTORY_ID || id == CLAP_PRESET_DISCOVERY_FACTORY_ID_COMPAT {
+    if id == unsafe { CStr::from_ptr(CLAP_PRESET_DISCOVERY_FACTORY_ID.as_ptr() as *const c_char) }
+        || id == unsafe { CStr::from_ptr(CLAP_PRESET_DISCOVERY_FACTORY_ID_COMPAT.as_ptr() as *const c_char) }
+    {
         return &PRESET_DISCOVERY_FACTORY as *const _ as *const c_void;
     }
 

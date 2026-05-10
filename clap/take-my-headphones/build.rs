@@ -5,7 +5,6 @@ fn main() {
         .header("../../external/clap-1.2.7/include/clap/clap.h")
         .parse_callbacks(Box::new(bindgen::CargoCallbacks::new()))
         .generate_cstr(true)
-        .generate_comments(true)
         .generate()
         .expect("clap bindgen failed");
 

@@ -1,5 +1,5 @@
 use baseview::{Size, Window, WindowOpenOptions, WindowScalePolicy};
-use std::sync::Arc;
+use std::{ffi::CStr, sync::Arc};
 
 use crate::{
     clap::*,
@@ -40,13 +40,13 @@ pub unsafe extern "C" fn is_api_supported(plugin: *const clap_plugin_t, api: *co
     let api_str = unsafe { std::ffi::CStr::from_ptr(api) };
 
     #[cfg(target_os = "linux")]
-    return api_str == CLAP_WINDOW_API_X11;
+    return api_str == unsafe { CStr::from_ptr(CLAP_WINDOW_API_X11.as_ptr() as *const std::ffi::c_char) };
 
     #[cfg(target_os = "windows")]
-    return api_str == CLAP_WINDOW_API_WIN32;
+    return api_str == unsafe { CStr::from_ptr(CLAP_WINDOW_API_WIN32.as_ptr() as *const std::ffi::c_char) };
 
     #[cfg(target_os = "macos")]
-    return api_str == CLAP_WINDOW_API_COCOA;
+    return api_str == unsafe { CStr::from_ptr(CLAP_WINDOW_API_COCOA.as_ptr() as *const std::ffi::c_char) };
 
     #[cfg(not(any(target_os = "linux", target_os = "windows", target_os = "macos")))]
     {
@@ -70,17 +70,17 @@ pub unsafe extern "C" fn get_preferred_api(
 
     #[cfg(target_os = "linux")]
     {
-        unsafe { *api = CLAP_WINDOW_API_X11.as_ptr() };
+        unsafe { *api = CLAP_WINDOW_API_X11.as_ptr() as *const std::ffi::c_char };
         true
     }
     #[cfg(target_os = "windows")]
     {
-        unsafe { *api = CLAP_WINDOW_API_WIN32.as_ptr() };
+        unsafe { *api = CLAP_WINDOW_API_WIN32.as_ptr() as *const std::ffi::c_char };
         return true;
     }
     #[cfg(target_os = "macos")]
     {
-        unsafe { *api = CLAP_WINDOW_API_COCOA.as_ptr() };
+        unsafe { *api = CLAP_WINDOW_API_COCOA.as_ptr() as *const std::ffi::c_char };
         return true;
     }
     #[cfg(not(any(target_os = "linux", target_os = "windows", target_os = "macos")))]
