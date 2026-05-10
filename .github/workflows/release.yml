@@ -1,0 +1,243 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "*-v*"
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  # ── macOS universal binary (arm64 + x86_64) ─────────────────────────────────
+  build-macos:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Derive variables from tag
+        run: |
+          TAG="${{ github.ref_name }}"
+          CRATE_NAME="${TAG%-v*}"
+          PLUGIN_NAME="${CRATE_NAME//-/_}"
+          BUNDLE_ID_SUFFIX=$(echo "$CRATE_NAME" | sed 's/-\([a-z]\)/\u\1/g; s/^\([a-z]\)/\u\1/')
+          echo "CRATE_NAME=$CRATE_NAME"   >> $GITHUB_ENV
+          echo "PLUGIN_NAME=$PLUGIN_NAME" >> $GITHUB_ENV
+          echo "BUNDLE_ID=com.enguidanosweb.${BUNDLE_ID_SUFFIX}" >> $GITHUB_ENV
+
+      - name: Install Rust targets
+        run: |
+          rustup target add aarch64-apple-darwin
+          rustup target add x86_64-apple-darwin
+
+      - name: Cache Rust
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: macos-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Install Tailwind CSS
+        run: npm install -g tailwindcss
+
+      - name: Build CSS
+        working-directory: clap/${{ env.CRATE_NAME }}
+        run: |
+          if [ -f src/gui/app/style/index.css ]; then
+            tailwindcss -i ./src/gui/app/style/index.css -o ./src/gui/app/style/output.css -m
+          fi
+
+      - name: Build arm64
+        run: cargo build --release -p ${{ env.CRATE_NAME }} --target aarch64-apple-darwin
+
+      - name: Build x86_64
+        run: cargo build --release -p ${{ env.CRATE_NAME }} --target x86_64-apple-darwin
+
+      - name: Create universal binary with lipo
+        run: |
+          lipo -create \
+            target/aarch64-apple-darwin/release/lib${{ env.PLUGIN_NAME }}.dylib \
+            target/x86_64-apple-darwin/release/lib${{ env.PLUGIN_NAME }}.dylib \
+            -output lib${{ env.PLUGIN_NAME }}_universal.dylib
+
+      - name: Bundle .clap
+        run: |
+          BUNDLE="${{ env.PLUGIN_NAME }}.clap"
+          VERSION="${{ github.ref_name }}"
+          VERSION="${VERSION##*-v}"
+          mkdir -p "$BUNDLE/Contents/MacOS"
+          cp lib${{ env.PLUGIN_NAME }}_universal.dylib "$BUNDLE/Contents/MacOS/${{ env.PLUGIN_NAME }}"
+          cat > "$BUNDLE/Contents/Info.plist" << EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>CFBundleExecutable</key>
+              <string>${{ env.PLUGIN_NAME }}</string>
+              <key>CFBundleIdentifier</key>
+              <string>${{ env.BUNDLE_ID }}</string>
+              <key>CFBundleVersion</key>
+              <string>${VERSION}</string>
+              <key>CFBundlePackageType</key>
+              <string>BNDL</string>
+              <key>CFBundleSignature</key>
+              <string>????</string>
+          </dict>
+          </plist>
+          EOF
+          codesign --force --deep --sign - "$BUNDLE"
+          zip -r "${{ env.PLUGIN_NAME }}-${{ github.ref_name }}-macos-universal.zip" "$BUNDLE"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-universal
+          path: ${{ env.PLUGIN_NAME }}-${{ github.ref_name }}-macos-universal.zip
+
+  # ── Linux x86_64 ─────────────────────────────────────────────────────────────
+  build-linux:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Derive variables from tag
+        run: |
+          TAG="${{ github.ref_name }}"
+          CRATE_NAME="${TAG%-v*}"
+          PLUGIN_NAME="${CRATE_NAME//-/_}"
+          echo "CRATE_NAME=$CRATE_NAME"   >> $GITHUB_ENV
+          echo "PLUGIN_NAME=$PLUGIN_NAME" >> $GITHUB_ENV
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libgtk-3-dev \
+            libx11-dev \
+            libxcb1-dev \
+            libxcb-render0-dev \
+            libxcb-shape0-dev \
+            libxcb-xfixes0-dev
+
+      - name: Cache Rust
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: linux-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Install Tailwind CSS
+        run: npm install -g tailwindcss
+
+      - name: Build CSS
+        working-directory: clap/${{ env.CRATE_NAME }}
+        run: |
+          if [ -f src/gui/app/style/index.css ]; then
+            tailwindcss -i ./src/gui/app/style/index.css -o ./src/gui/app/style/output.css -m
+          fi
+
+      - name: Build
+        run: cargo build --release -p ${{ env.CRATE_NAME }}
+
+      - name: Package .clap
+        run: |
+          cp target/release/lib${{ env.PLUGIN_NAME }}.so ${{ env.PLUGIN_NAME }}.clap
+          zip "${{ env.PLUGIN_NAME }}-${{ github.ref_name }}-linux-x86_64.zip" "${{ env.PLUGIN_NAME }}.clap"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-x86_64
+          path: ${{ env.PLUGIN_NAME }}-${{ github.ref_name }}-linux-x86_64.zip
+
+  # ── Windows x86_64 ───────────────────────────────────────────────────────────
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Derive variables from tag
+        shell: bash
+        run: |
+          TAG="${{ github.ref_name }}"
+          CRATE_NAME="${TAG%-v*}"
+          PLUGIN_NAME="${CRATE_NAME//-/_}"
+          echo "CRATE_NAME=$CRATE_NAME"   >> $GITHUB_ENV
+          echo "PLUGIN_NAME=$PLUGIN_NAME" >> $GITHUB_ENV
+
+      - name: Cache Rust
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: windows-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Install Tailwind CSS
+        run: npm install -g tailwindcss
+
+      - name: Build CSS
+        shell: bash
+        working-directory: clap/${{ env.CRATE_NAME }}
+        run: |
+          if [ -f src/gui/app/style/index.css ]; then
+            tailwindcss -i ./src/gui/app/style/index.css -o ./src/gui/app/style/output.css -m
+          fi
+
+      - name: Build
+        run: cargo build --release -p ${{ env.CRATE_NAME }}
+
+      - name: Package .clap
+        shell: pwsh
+        run: |
+          Copy-Item "target\release\${{ env.PLUGIN_NAME }}.dll" "${{ env.PLUGIN_NAME }}.clap"
+          Compress-Archive -Path "${{ env.PLUGIN_NAME }}.clap" -DestinationPath "${{ env.PLUGIN_NAME }}-${{ github.ref_name }}-windows-x86_64.zip"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-x86_64
+          path: ${{ env.PLUGIN_NAME }}-${{ github.ref_name }}-windows-x86_64.zip
+
+  # ── GitHub Release ───────────────────────────────────────────────────────────
+  release:
+    needs: [build-macos, build-linux, build-windows]
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    steps:
+      - name: Derive variables from tag
+        run: |
+          TAG="${{ github.ref_name }}"
+          CRATE_NAME="${TAG%-v*}"
+          echo "CRATE_NAME=$CRATE_NAME" >> $GITHUB_ENV
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ${{ env.CRATE_NAME }} ${{ github.ref_name }}
+          body: |
+            ## Installation
+
+            Download the file for your platform and place it in your CLAP plugin folder:
+
+            | Platform | Folder |
+            |---|---|
+            | macOS | `~/Library/Audio/Plug-Ins/CLAP/` |
+            | Linux | `~/.clap/` |
+            | Windows | `C:\Program Files\Common Files\CLAP\` |
+
+            **macOS users:** the plugin is unsigned. Run once in Terminal:
+            ```bash
+            xattr -dr com.apple.quarantine /path/to/*.clap
+            ```
+          files: artifacts/*.zip
+          draft: false
+          prerelease: ${{ contains(github.ref_name, '-alpha') || contains(github.ref_name, '-beta') || contains(github.ref_name, '-rc') }}

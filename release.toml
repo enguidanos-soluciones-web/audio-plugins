@@ -1,0 +1,19 @@
+# cargo-release configuration
+# Docs: https://github.com/crate-io/cargo-release/blob/master/docs/reference.md
+
+# Don't publish to crates.io — this is a CLAP plugin, not a library
+publish = false
+
+# Push commits and tag to remote after release
+push = true
+
+# Create git tag
+tag = true
+tag-name = "{{crate_name}}-v{{version}}"
+tag-message = "{{crate_name}} {{version}}"
+
+# Commit message for the version bump
+pre-release-commit-message = "chore: bump {{crate_name}} to {{version}}"
+
+# Don't run tests before releasing (CI handles that)
+verify = false
