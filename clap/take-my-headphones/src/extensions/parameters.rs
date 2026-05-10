@@ -57,63 +57,63 @@ pub extern "C" fn get_info(plugin: *const clap_plugin_t, index: u32, information
 
     match &param {
         AnyParameter::Cutoff { inner } => {
-            new_information.flags = CLAP_PARAM_IS_AUTOMATABLE;
+            new_information.flags = CLAP_PARAM_IS_AUTOMATABLE as u32;
             new_information.min_value = inner.behave.min;
             new_information.max_value = inner.behave.max;
             new_information.default_value = inner.behave.def;
             copy_cstr(&mut new_information.name, inner.name.as_bytes());
         }
         AnyParameter::XFeed { inner } => {
-            new_information.flags = CLAP_PARAM_IS_AUTOMATABLE;
+            new_information.flags = CLAP_PARAM_IS_AUTOMATABLE as u32;
             new_information.min_value = inner.behave.min;
             new_information.max_value = inner.behave.max;
             new_information.default_value = inner.behave.def;
             copy_cstr(&mut new_information.name, inner.name.as_bytes());
         }
         AnyParameter::CalibrationMode { inner } => {
-            new_information.flags = CLAP_PARAM_IS_STEPPED | CLAP_PARAM_IS_ENUM;
+            new_information.flags = (CLAP_PARAM_IS_STEPPED | CLAP_PARAM_IS_ENUM) as u32;
             new_information.min_value = 0.0;
             new_information.max_value = (inner.behave.options.len() - 1) as f64;
             new_information.default_value = inner.behave.def as f64;
             copy_cstr(&mut new_information.name, inner.name.as_bytes());
         }
         AnyParameter::Center { inner } => {
-            new_information.flags = CLAP_PARAM_IS_AUTOMATABLE;
+            new_information.flags = CLAP_PARAM_IS_AUTOMATABLE as u32;
             new_information.min_value = inner.behave.min;
             new_information.max_value = inner.behave.max;
             new_information.default_value = inner.behave.def;
             copy_cstr(&mut new_information.name, inner.name.as_bytes());
         }
         AnyParameter::Angle { inner } => {
-            new_information.flags = CLAP_PARAM_IS_AUTOMATABLE;
+            new_information.flags = CLAP_PARAM_IS_AUTOMATABLE as u32;
             new_information.min_value = inner.behave.min;
             new_information.max_value = inner.behave.max;
             new_information.default_value = inner.behave.def;
             copy_cstr(&mut new_information.name, inner.name.as_bytes());
         }
         AnyParameter::LRSwap { inner } => {
-            new_information.flags = CLAP_PARAM_IS_STEPPED | CLAP_PARAM_IS_ENUM;
+            new_information.flags = (CLAP_PARAM_IS_STEPPED | CLAP_PARAM_IS_ENUM) as u32;
             new_information.min_value = 0.0;
             new_information.max_value = (inner.behave.options.len() - 1) as f64;
             new_information.default_value = inner.behave.def as f64;
             copy_cstr(&mut new_information.name, inner.name.as_bytes());
         }
         AnyParameter::Solo { inner } => {
-            new_information.flags = CLAP_PARAM_IS_STEPPED | CLAP_PARAM_IS_ENUM;
+            new_information.flags = (CLAP_PARAM_IS_STEPPED | CLAP_PARAM_IS_ENUM) as u32;
             new_information.min_value = 0.0;
             new_information.max_value = (inner.behave.options.len() - 1) as f64;
             new_information.default_value = inner.behave.def as f64;
             copy_cstr(&mut new_information.name, inner.name.as_bytes());
         }
         AnyParameter::Phase { inner } => {
-            new_information.flags = CLAP_PARAM_IS_STEPPED | CLAP_PARAM_IS_ENUM;
+            new_information.flags = (CLAP_PARAM_IS_STEPPED | CLAP_PARAM_IS_ENUM) as u32;
             new_information.min_value = 0.0;
             new_information.max_value = (inner.behave.options.len() - 1) as f64;
             new_information.default_value = inner.behave.def as f64;
             copy_cstr(&mut new_information.name, inner.name.as_bytes());
         }
         AnyParameter::Gain { inner } => {
-            new_information.flags = CLAP_PARAM_IS_AUTOMATABLE;
+            new_information.flags = CLAP_PARAM_IS_AUTOMATABLE as u32;
             new_information.min_value = inner.behave.min;
             new_information.max_value = inner.behave.max;
             new_information.default_value = inner.behave.def;
@@ -268,7 +268,7 @@ pub extern "C" fn flush(plugin: *const clap_plugin_t, inn: *const clap_input_eve
             let event = unsafe { get(inn, n) };
             let event_ref = unsafe { event.as_ref_unchecked() };
 
-            if event_ref.space_id == CLAP_CORE_EVENT_SPACE_ID && event_ref.type_ as u32 == CLAP_EVENT_PARAM_VALUE {
+            if event_ref.space_id == CLAP_CORE_EVENT_SPACE_ID && event_ref.type_ as u32 == CLAP_EVENT_PARAM_VALUE as u32 {
                 let value_event = unsafe { (event as *const clap_event_param_value_t).as_ref_unchecked() };
 
                 let id = value_event.param_id as usize;

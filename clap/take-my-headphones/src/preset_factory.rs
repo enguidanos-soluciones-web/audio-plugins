@@ -92,9 +92,9 @@ unsafe extern "C" fn provider_init(provider: *const clap_preset_discovery_provid
     let indexer_ref = unsafe { indexer.as_ref_unchecked() };
 
     let location = clap_preset_discovery_location {
-        flags: clap_preset_discovery_flags_CLAP_PRESET_DISCOVERY_IS_FACTORY_CONTENT,
+        flags: clap_preset_discovery_flags_CLAP_PRESET_DISCOVERY_IS_FACTORY_CONTENT as u32,
         name: c"Built-in".as_ptr(),
-        kind: clap_preset_discovery_location_kind_CLAP_PRESET_DISCOVERY_LOCATION_PLUGIN,
+        kind: clap_preset_discovery_location_kind_CLAP_PRESET_DISCOVERY_LOCATION_PLUGIN as u32,
         location: std::ptr::null(),
     };
 
@@ -115,7 +115,7 @@ unsafe extern "C" fn provider_get_metadata(
     _location: *const c_char,
     metadata_receiver: *const clap_preset_discovery_metadata_receiver_t,
 ) -> bool {
-    if location_kind != clap_preset_discovery_location_kind_CLAP_PRESET_DISCOVERY_LOCATION_PLUGIN {
+    if location_kind != clap_preset_discovery_location_kind_CLAP_PRESET_DISCOVERY_LOCATION_PLUGIN as u32 {
         return false;
     }
 
@@ -144,7 +144,7 @@ unsafe extern "C" fn provider_get_metadata(
             unsafe {
                 set_flags(
                     metadata_receiver,
-                    clap_preset_discovery_flags_CLAP_PRESET_DISCOVERY_IS_FACTORY_CONTENT,
+                    clap_preset_discovery_flags_CLAP_PRESET_DISCOVERY_IS_FACTORY_CONTENT as u32,
                 )
             };
         }

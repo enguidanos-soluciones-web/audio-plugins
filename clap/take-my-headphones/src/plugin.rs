@@ -327,7 +327,7 @@ pub unsafe extern "C" fn on_main_thread(plugin: *const clap_plugin) {
             if !ext.is_null() {
                 let host_params = unsafe { (ext as *const clap_host_params_t).as_ref_unchecked() };
                 if let Some(rescan) = host_params.rescan {
-                    unsafe { rescan(host, CLAP_PARAM_RESCAN_VALUES) };
+                    unsafe { rescan(host, CLAP_PARAM_RESCAN_VALUES as u32) };
                 }
             }
         }

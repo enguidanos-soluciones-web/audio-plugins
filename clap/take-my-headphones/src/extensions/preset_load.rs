@@ -12,7 +12,7 @@ unsafe extern "C" fn from_location(
     _location: *const std::ffi::c_char,
     load_key: *const std::ffi::c_char,
 ) -> bool {
-    if location_kind != clap_preset_discovery_location_kind_CLAP_PRESET_DISCOVERY_LOCATION_PLUGIN {
+    if location_kind != clap_preset_discovery_location_kind_CLAP_PRESET_DISCOVERY_LOCATION_PLUGIN as u32 {
         return false;
     }
 
@@ -41,7 +41,7 @@ unsafe extern "C" fn from_location(
         if !ext.is_null() {
             let host_params = unsafe { (ext as *const clap_host_params_t).as_ref_unchecked() };
             if let Some(rescan) = host_params.rescan {
-                unsafe { rescan(host, CLAP_PARAM_RESCAN_VALUES) };
+                unsafe { rescan(host, CLAP_PARAM_RESCAN_VALUES as u32) };
             }
         }
     }
