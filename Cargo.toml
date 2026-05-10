@@ -2,15 +2,16 @@
 resolver = "3"
 members = [
     "clap/__template",
-    "clap/take-my-phones"
+    "clap/take-my-headphones"
 ]
 
-[profile.dev]
-opt-level = 0
-incremental = true
-
-[profile.dev.package."*"]
-opt-level = 2
+[profile.release]
+strip = "symbols"
+lto = "fat"
+codegen-units = 1
+opt-level = "z"       # optimiza para tamaño (no velocidad)
+panic = "abort"       # elimina unwinding machinery (~10-15% del binary)
+overflow-checks = false
 
 [workspace.dependencies]
 arc-swap = "1.9.1"
