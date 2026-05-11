@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-use crate::{clap::*, helper::copy_cstr, plugin::Plugin};
+use crate::{clap::*, plugin::Plugin, utils::copy_cstr::copy_cstr};
 
 pub static AUDIO_PORTS_EXT: clap_plugin_audio_ports_t = clap_plugin_audio_ports {
     count: Some(count_audio_ports),

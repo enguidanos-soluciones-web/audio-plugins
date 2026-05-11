@@ -13,26 +13,18 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-#![allow(non_upper_case_globals, non_camel_case_types, non_snake_case)]
-#![cfg_attr(target_os = "macos", allow(unexpected_cfgs))]
-
-pub mod clap {
-    include!(concat!(env!("OUT_DIR"), "/clap.rs"));
+pub enum DecibelConversion {
+    Amplitude,
+    #[allow(dead_code)]
+    Power,
 }
 
-mod channel;
-mod descriptor;
-mod dsp;
-mod entry;
-mod extensions;
-mod factory;
-mod gestures;
-mod gui;
-mod host_notifier;
-mod parameters;
-mod plugin;
-mod preset_factory;
-mod processors;
-mod state;
-mod utils;
-mod version;
+pub fn db_to_linear(db: f64, conv: DecibelConversion) -> f64 {
+    f64::powf(
+        10.0,
+        db / match conv {
+            DecibelConversion::Amplitude => 20.0,
+            DecibelConversion::Power => 10.0,
+        },
+    )
+}

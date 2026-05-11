@@ -76,7 +76,9 @@ impl PinkNoise {
         self.b5 = -0.76160 * self.b5 - white * 0.0168980;
 
         let pink = (self.b0 + self.b1 + self.b2 + self.b3 + self.b4 + self.b5 + white * 0.5362) * 0.11;
-        pink.clamp(-1.0, 1.0)
+
+        // -12 dBFS target level for calibration pink noise (10^(-12/20))
+        pink.clamp(-1.0, 1.0) * 10f64.powf(-12f64 / 20f64)
     }
 
     /// xorshift64 → uniform f64 in [-1, 1].

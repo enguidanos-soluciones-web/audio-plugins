@@ -133,23 +133,15 @@ impl Bs2b {
         self.right.reset();
     }
 
-    /// Process one stereo sample pair (no ITD).
-    ///   outL = highboost(inL) + lp(inR)
-    ///   outR = highboost(inR) + lp(inL)
-    #[allow(unused)]
-    pub fn process(&mut self, in_l: f64, in_r: f64) -> (f64, f64) {
-        self.process_with_itd(in_l, in_r, in_r, in_l)
-    }
-
     /// Process with ITD: direct path uses `in_l`/`in_r`, crossed path uses pre-delayed signals.
     ///   outL = highboost(in_l) + lp(in_r_delayed)
     ///   outR = highboost(in_r) + lp(in_l_delayed)
-    pub fn process_with_itd(&mut self, in_l: f64, in_r: f64, in_l_delayed: f64, in_r_delayed: f64) -> (f64, f64) {
-        let highboost_l = self.left.highboost(in_l, &self.coeffs);
-        let highboost_r = self.right.highboost(in_r, &self.coeffs);
+    pub fn process_with_itd(&mut self, sample: (f64, f64), delayed: (f64, f64)) -> (f64, f64) {
+        let highboost_l = self.left.highboost(sample.0, &self.coeffs);
+        let highboost_r = self.right.highboost(sample.1, &self.coeffs);
 
-        let lowpass_l = self.left.lowpass(in_l_delayed, &self.coeffs);
-        let lowpass_r = self.right.lowpass(in_r_delayed, &self.coeffs);
+        let lowpass_l = self.left.lowpass(delayed.0, &self.coeffs);
+        let lowpass_r = self.right.lowpass(delayed.1, &self.coeffs);
 
         (highboost_l + lowpass_r, highboost_r + lowpass_l)
     }

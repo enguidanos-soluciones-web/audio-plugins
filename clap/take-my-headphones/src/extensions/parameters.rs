@@ -15,7 +15,6 @@
 
 use crate::{
     clap::*,
-    helper::copy_cstr,
     parameters::{
         Parameter, Range, Select,
         angle::Angle,
@@ -31,6 +30,7 @@ use crate::{
     },
     plugin::Plugin,
     processors::{handle_clap_event::handle_clap_event, sync_main_to_audio::sync_main_to_audio},
+    utils::copy_cstr::copy_cstr,
 };
 use std::io::Write;
 use std::{ffi::c_char, sync::Arc};

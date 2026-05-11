@@ -12,13 +12,17 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
-
 use crate::{
+    dsp::itd::ItdDelay,
     parameters::{
         Parameter, Range, Select, angle::Angle, calibration_mode::CalibrationMode, center::Center, cutoff::Cutoff, gain::Gain,
         lrswap::LRSwap, phase::Phase, solo::Solo, xfeed::XFeed,
     },
     state::AudioThreadState,
+    utils::{
+        decibel_conversion::{DecibelConversion, db_to_linear},
+        tuples::{FillFromLeft, FillFromRight, Reverse},
+    },
 };
 
 pub fn render_audio_f64(
@@ -35,81 +39,88 @@ pub fn render_audio_f64(
 
     let cutoff = snapshot.values[Parameter::<Cutoff, Range>::ID];
     let xfeed = snapshot.values[Parameter::<XFeed, Range>::ID];
-    let calibration_mode = snapshot.values[Parameter::<CalibrationMode, Select>::ID].round() as u8;
-    let center_gain = 10f64.powf(snapshot.values[Parameter::<Center, Range>::ID] / 20.0);
-    let delay_samples = crate::dsp::itd::ItdDelay::angle_to_delay_samples(
-        snapshot.values[Parameter::<Angle, Range>::ID],
-        audio_thread.sample_rate,
-    );
-    let lrswap = snapshot.values[Parameter::<LRSwap, Select>::ID].round() as u8;
-    let solo = snapshot.values[Parameter::<Solo, Select>::ID].round() as u8;
-    let phase = snapshot.values[Parameter::<Phase, Select>::ID].round() as u8;
-    let makeup_gain = 10f64.powf(snapshot.values[Parameter::<Gain, Range>::ID] / 20.0);
-
-    audio_thread.dsp.bs2b.update_coeffs(cutoff, xfeed, audio_thread.sample_rate);
+    let angle = snapshot.values[Parameter::<Angle, Range>::ID];
+    let calibration_mode = snapshot.values[Parameter::<CalibrationMode, Select>::ID];
+    let center_gain = snapshot.values[Parameter::<Center, Range>::ID];
+    let lrswap = snapshot.values[Parameter::<LRSwap, Select>::ID];
+    let solo = snapshot.values[Parameter::<Solo, Select>::ID];
+    let phase = snapshot.values[Parameter::<Phase, Select>::ID];
+    let makeup_gain = snapshot.values[Parameter::<Gain, Range>::ID];
 
     let in_l = unsafe { std::slice::from_raw_parts(in_l, nframes) };
     let in_r = unsafe { std::slice::from_raw_parts(in_r, nframes) };
     let out_l = unsafe { std::slice::from_raw_parts_mut(out_l, nframes) };
     let out_r = unsafe { std::slice::from_raw_parts_mut(out_r, nframes) };
 
-    // -12 dBFS target level for calibration pink noise (10^(-12/20))
-    const CAL_GAIN: f64 = 0.25118864315095797;
-
-    let half = audio_thread.dsp.calibration.half_period;
-
     for i in 0..nframes {
-        let (raw_l, raw_r) = match calibration_mode {
+        let calibration_output = match calibration_mode.round() as u8 {
             // Calibration off — pass incoming audio through bs2b
             CalibrationMode::OFF => (in_l[i], in_r[i]),
-
             // L-only pink noise at -12 dBFS — direct signal in left ear, crossed LP in right ear.
             // Adjust Cutoff: controls which frequencies appear in the right (crossed) ear.
             // Adjust XFeed: controls how loud the crossed signal is in the right ear.
-            CalibrationMode::CONTINUOUS => {
-                let n = audio_thread.dsp.calibration.pink_noise.next() * CAL_GAIN;
-                (n, 0.0)
-            }
-
+            CalibrationMode::CONTINUOUS => (audio_thread.dsp.calibration.pink_noise.next(), 0.0),
             // Intermittent alternating mono pink noise at -12 dBFS — 500ms L, then 500ms R, repeat.
             // Good for tuning Angle: hear how the ITD delay externalizes the image.
             CalibrationMode::INTERMITTENT => {
-                let cal_phase = audio_thread.dsp.calibration.phase;
-                audio_thread.dsp.calibration.phase = (cal_phase + 1) % (half * 2);
-                let n = audio_thread.dsp.calibration.pink_noise.next() * CAL_GAIN;
-                if cal_phase < half { (n, 0.0) } else { (0.0, n) }
+                audio_thread.dsp.calibration.phase =
+                    (audio_thread.dsp.calibration.phase + 1) % (audio_thread.dsp.calibration.half_period * 2);
+
+                let sample = audio_thread.dsp.calibration.pink_noise.next();
+
+                if audio_thread.dsp.calibration.phase < audio_thread.dsp.calibration.half_period {
+                    (sample, 0.0)
+                } else {
+                    (0.0, sample)
+                }
             }
 
             _ => (in_l[i], in_r[i]),
         };
 
         // 1. L/R swap
-        let (src_l, src_r) = if lrswap == LRSwap::ON { (raw_r, raw_l) } else { (raw_l, raw_r) };
-
-        // 2. Phase inversion
-        let src_l = if phase == Phase::L { -src_l } else { src_l };
-        let src_r = if phase == Phase::R { -src_r } else { src_r };
-
-        // 3. ITD delay for the crossed path + bs2b
-        let (src_l_delayed, src_r_delayed) = audio_thread.dsp.itd.process(src_l, src_r, delay_samples);
-        let (bs2b_l, bs2b_r) = audio_thread.dsp.bs2b.process_with_itd(src_l, src_r, src_l_delayed, src_r_delayed);
-
-        // 4. M/S center attenuation (SPL Phonitor 3 Center knob)
-        let mid = (bs2b_l + bs2b_r) * 0.5 * center_gain;
-        let side = (bs2b_l - bs2b_r) * 0.5;
-        let wet_l = mid + side;
-        let wet_r = mid - side;
-
-        // 5. Solo (post-matrix, copy processed channel to both ears)
-        let (wet_l, wet_r) = match solo {
-            Solo::L => (wet_l, wet_l),
-            Solo::R => (wet_r, wet_r),
-            _ => (wet_l, wet_r),
+        let mut lrswap_output = calibration_output;
+        if lrswap.round() as u8 == LRSwap::ON {
+            lrswap_output = calibration_output.reverse()
         };
 
-        // 6. Makeup gain (compensates level loss from bs2b/center processing)
-        out_l[i] = wet_l * makeup_gain;
-        out_r[i] = wet_r * makeup_gain;
+        // 2. Phase inversion
+        let mut phase_inversion_output = lrswap_output;
+        if phase.round() as u8 == Phase::L {
+            phase_inversion_output.0 = -phase_inversion_output.0;
+        };
+        if phase.round() as u8 == Phase::R {
+            phase_inversion_output.1 = -phase_inversion_output.1;
+        };
+
+        // 3. ITD delay for the crossed path
+        let itd_delayed_output = audio_thread.dsp.itd.process(
+            phase_inversion_output,
+            ItdDelay::angle_to_delay_samples(angle, audio_thread.sample_rate),
+        );
+
+        // 4. bs2b
+        audio_thread.dsp.bs2b.update_coeffs(cutoff, xfeed, audio_thread.sample_rate);
+        let bs2b_output = audio_thread.dsp.bs2b.process_with_itd(phase_inversion_output, itd_delayed_output);
+
+        // 5. M/S center attenuation (SPL Phonitor 3 Center knob)
+        let mid = (bs2b_output.0 + bs2b_output.1) * 0.5;
+        let side = (bs2b_output.0 - bs2b_output.1) * 0.5;
+        let mid_gain = db_to_linear(center_gain, DecibelConversion::Amplitude);
+        let center_attenuated_output = (mid * mid_gain + side, mid * mid_gain - side);
+
+        // 6. Solo (post-matrix, copy processed channel to both ears)
+        let mut solo_output = center_attenuated_output;
+        if solo.round() as u8 == Solo::L {
+            solo_output = center_attenuated_output.fill_from_left();
+        };
+        if solo.round() as u8 == Solo::R {
+            solo_output = center_attenuated_output.fill_from_right();
+        };
+
+        // 7. Makeup gain (compensates level loss from bs2b/center processing)
+        out_l[i] = solo_output.0 * db_to_linear(makeup_gain, DecibelConversion::Amplitude);
+        out_r[i] = solo_output.1 * db_to_linear(makeup_gain, DecibelConversion::Amplitude);
     }
 }
 
@@ -127,66 +138,86 @@ pub fn render_audio_f32(
 
     let cutoff = snapshot.values[Parameter::<Cutoff, Range>::ID];
     let xfeed = snapshot.values[Parameter::<XFeed, Range>::ID];
-    let calibration_mode = snapshot.values[Parameter::<CalibrationMode, Select>::ID].round() as u8;
-    let center_gain = 10f64.powf(snapshot.values[Parameter::<Center, Range>::ID] / 20.0);
-    let delay_samples = crate::dsp::itd::ItdDelay::angle_to_delay_samples(
-        snapshot.values[Parameter::<Angle, Range>::ID],
-        audio_thread.sample_rate,
-    );
-    let lrswap = snapshot.values[Parameter::<LRSwap, Select>::ID].round() as u8;
-    let solo = snapshot.values[Parameter::<Solo, Select>::ID].round() as u8;
-    let phase = snapshot.values[Parameter::<Phase, Select>::ID].round() as u8;
-    let makeup_gain = 10f64.powf(snapshot.values[Parameter::<Gain, Range>::ID] / 20.0);
-
-    audio_thread.dsp.bs2b.update_coeffs(cutoff, xfeed, audio_thread.sample_rate);
+    let angle = snapshot.values[Parameter::<Angle, Range>::ID];
+    let calibration_mode = snapshot.values[Parameter::<CalibrationMode, Select>::ID];
+    let center_gain = snapshot.values[Parameter::<Center, Range>::ID];
+    let lrswap = snapshot.values[Parameter::<LRSwap, Select>::ID];
+    let solo = snapshot.values[Parameter::<Solo, Select>::ID];
+    let phase = snapshot.values[Parameter::<Phase, Select>::ID];
+    let makeup_gain = snapshot.values[Parameter::<Gain, Range>::ID];
 
     let in_l = unsafe { std::slice::from_raw_parts(in_l, nframes) };
     let in_r = unsafe { std::slice::from_raw_parts(in_r, nframes) };
     let out_l = unsafe { std::slice::from_raw_parts_mut(out_l, nframes) };
     let out_r = unsafe { std::slice::from_raw_parts_mut(out_r, nframes) };
 
-    const CAL_GAIN: f64 = 0.25118864315095797; // -12 dBFS (10^(-12/20))
-
-    let half = audio_thread.dsp.calibration.half_period;
-
     for i in 0..nframes {
-        let (raw_l, raw_r) = match calibration_mode {
+        let calibration_output = match calibration_mode.round() as u8 {
+            // Calibration off — pass incoming audio through bs2b
             CalibrationMode::OFF => (in_l[i] as f64, in_r[i] as f64),
-
-            CalibrationMode::CONTINUOUS => {
-                let n = audio_thread.dsp.calibration.pink_noise.next() * CAL_GAIN;
-                (n, 0.0)
-            }
-
+            // L-only pink noise at -12 dBFS — direct signal in left ear, crossed LP in right ear.
+            // Adjust Cutoff: controls which frequencies appear in the right (crossed) ear.
+            // Adjust XFeed: controls how loud the crossed signal is in the right ear.
+            CalibrationMode::CONTINUOUS => (audio_thread.dsp.calibration.pink_noise.next(), 0.0),
+            // Intermittent alternating mono pink noise at -12 dBFS — 500ms L, then 500ms R, repeat.
+            // Good for tuning Angle: hear how the ITD delay externalizes the image.
             CalibrationMode::INTERMITTENT => {
-                let cal_phase = audio_thread.dsp.calibration.phase;
-                audio_thread.dsp.calibration.phase = (cal_phase + 1) % (half * 2);
-                let n = audio_thread.dsp.calibration.pink_noise.next() * CAL_GAIN;
-                if cal_phase < half { (n, 0.0) } else { (0.0, n) }
-            }
+                audio_thread.dsp.calibration.phase =
+                    (audio_thread.dsp.calibration.phase + 1) % (audio_thread.dsp.calibration.half_period * 2);
 
+                let sample = audio_thread.dsp.calibration.pink_noise.next();
+
+                if audio_thread.dsp.calibration.phase < audio_thread.dsp.calibration.half_period {
+                    (sample, 0.0)
+                } else {
+                    (0.0, sample)
+                }
+            }
             _ => (in_l[i] as f64, in_r[i] as f64),
         };
 
-        let (src_l, src_r) = if lrswap == LRSwap::ON { (raw_r, raw_l) } else { (raw_l, raw_r) };
-        let src_l = if phase == Phase::L { -src_l } else { src_l };
-        let src_r = if phase == Phase::R { -src_r } else { src_r };
-
-        let (src_l_delayed, src_r_delayed) = audio_thread.dsp.itd.process(src_l, src_r, delay_samples);
-        let (bs2b_l, bs2b_r) = audio_thread.dsp.bs2b.process_with_itd(src_l, src_r, src_l_delayed, src_r_delayed);
-
-        let mid = (bs2b_l + bs2b_r) * 0.5 * center_gain;
-        let side = (bs2b_l - bs2b_r) * 0.5;
-        let wet_l = mid + side;
-        let wet_r = mid - side;
-
-        let (wet_l, wet_r) = match solo {
-            Solo::L => (wet_l, wet_l),
-            Solo::R => (wet_r, wet_r),
-            _ => (wet_l, wet_r),
+        // 1. L/R swap
+        let mut lrswap_output = calibration_output;
+        if lrswap.round() as u8 == LRSwap::ON {
+            lrswap_output = calibration_output.reverse()
         };
 
-        out_l[i] = (wet_l * makeup_gain) as f32;
-        out_r[i] = (wet_r * makeup_gain) as f32;
+        // 2. Phase inversion
+        let mut phase_inversion_output = lrswap_output;
+        if phase.round() as u8 == Phase::L {
+            phase_inversion_output.0 = -phase_inversion_output.0;
+        };
+        if phase.round() as u8 == Phase::R {
+            phase_inversion_output.1 = -phase_inversion_output.1;
+        };
+
+        // 3. ITD delay for the crossed path
+        let itd_delayed_output = audio_thread.dsp.itd.process(
+            phase_inversion_output,
+            ItdDelay::angle_to_delay_samples(angle, audio_thread.sample_rate),
+        );
+
+        // 4. bs2b
+        audio_thread.dsp.bs2b.update_coeffs(cutoff, xfeed, audio_thread.sample_rate);
+        let bs2b_output = audio_thread.dsp.bs2b.process_with_itd(phase_inversion_output, itd_delayed_output);
+
+        // 5. M/S center attenuation (SPL Phonitor 3 Center knob)
+        let mid = (bs2b_output.0 + bs2b_output.1) * 0.5;
+        let side = (bs2b_output.0 - bs2b_output.1) * 0.5;
+        let mid_gain = db_to_linear(center_gain, DecibelConversion::Amplitude);
+        let center_attenuated_output = (mid * mid_gain + side, mid * mid_gain - side);
+
+        // 6. Solo (post-matrix, copy processed channel to both ears)
+        let mut solo_output = center_attenuated_output;
+        if solo.round() as u8 == Solo::L {
+            solo_output = center_attenuated_output.fill_from_left();
+        };
+        if solo.round() as u8 == Solo::R {
+            solo_output = center_attenuated_output.fill_from_right();
+        };
+
+        // 7. Makeup gain (compensates level loss from bs2b/center processing)
+        out_l[i] = (solo_output.0 * db_to_linear(makeup_gain, DecibelConversion::Amplitude)) as f32;
+        out_r[i] = (solo_output.1 * db_to_linear(makeup_gain, DecibelConversion::Amplitude)) as f32;
     }
 }

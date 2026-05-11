@@ -57,10 +57,10 @@ impl ItdDelay {
 
     /// Write current sample pair to the buffer, then read back with fractional delay.
     /// Returns `(delayed_l, delayed_r)`.
-    pub fn process(&mut self, in_l: f64, in_r: f64, delay_samples: f64) -> (f64, f64) {
+    pub fn process(&mut self, sample: (f64, f64), delay_samples: f64) -> (f64, f64) {
         // Write current sample
-        self.buf_l[self.write_ptr] = in_l;
-        self.buf_r[self.write_ptr] = in_r;
+        self.buf_l[self.write_ptr] = sample.0;
+        self.buf_r[self.write_ptr] = sample.1;
 
         // Fractional read: linear interpolation between floor and floor+1 samples ago
         let delay_floor = delay_samples.floor() as usize;
