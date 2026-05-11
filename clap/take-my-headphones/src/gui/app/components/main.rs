@@ -67,7 +67,7 @@ pub fn Main() -> Element {
         .behave
         .options
         .iter()
-        .map(|&v| Phase::label(v).to_string())
+        .map(|&v| Phase::from(v).to_string())
         .collect();
 
     rsx! {

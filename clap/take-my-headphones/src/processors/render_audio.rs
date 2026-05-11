@@ -44,7 +44,7 @@ pub fn render_audio_f64(
     let center_gain = snapshot.values[Parameter::<Center, Range>::ID];
     let lrswap = LRSwap::from(snapshot.values[Parameter::<LRSwap, Select>::ID]);
     let solo = snapshot.values[Parameter::<Solo, Select>::ID];
-    let phase = snapshot.values[Parameter::<Phase, Select>::ID];
+    let phase = Phase::from(snapshot.values[Parameter::<Phase, Select>::ID]);
     let makeup_gain = snapshot.values[Parameter::<Gain, Range>::ID];
 
     let in_l = unsafe { std::slice::from_raw_parts(in_l, nframes) };
@@ -86,10 +86,10 @@ pub fn render_audio_f64(
 
         // 2. Phase inversion
         let mut phase_inversion_output = lrswap_output;
-        if phase.round() as u8 == Phase::L {
+        if matches!(phase, Phase::L) {
             phase_inversion_output.0 = -phase_inversion_output.0;
         };
-        if phase.round() as u8 == Phase::R {
+        if matches!(phase, Phase::R) {
             phase_inversion_output.1 = -phase_inversion_output.1;
         };
 
@@ -143,7 +143,7 @@ pub fn render_audio_f32(
     let center_gain = snapshot.values[Parameter::<Center, Range>::ID];
     let lrswap = LRSwap::from(snapshot.values[Parameter::<LRSwap, Select>::ID]);
     let solo = snapshot.values[Parameter::<Solo, Select>::ID];
-    let phase = snapshot.values[Parameter::<Phase, Select>::ID];
+    let phase = Phase::from(snapshot.values[Parameter::<Phase, Select>::ID]);
     let makeup_gain = snapshot.values[Parameter::<Gain, Range>::ID];
 
     let in_l = unsafe { std::slice::from_raw_parts(in_l, nframes) };
@@ -184,10 +184,10 @@ pub fn render_audio_f32(
 
         // 2. Phase inversion
         let mut phase_inversion_output = lrswap_output;
-        if phase.round() as u8 == Phase::L {
+        if matches!(phase, Phase::L) {
             phase_inversion_output.0 = -phase_inversion_output.0;
         };
-        if phase.round() as u8 == Phase::R {
+        if matches!(phase, Phase::R) {
             phase_inversion_output.1 = -phase_inversion_output.1;
         };
 
