@@ -44,14 +44,15 @@ use std::f64::consts::PI;
 /// | Default   | 700 Hz  | 4.5 dB  | −6.75 dB | −2.25 dB |
 /// | Chu Moy   | 700 Hz  | 6.0 dB  | −8.0 dB  | −2.0 dB  |
 /// | Jan Meier | 650 Hz  | 9.5 dB  | −10.917 dB | −1.417 dB |
-/// 5 × f64 = 40 bytes. Fits in a single 64-byte cache line with 24 bytes to spare.
-/// `#[repr(align(64))]` pins the struct to a cache line boundary so it is never
-/// split across two lines — avoiding an extra cache miss on every sample.
+/// 5 × f64 = 40 bytes of data, padded to 64 bytes by `#[repr(align(64))]`.
+/// The alignment pins the struct to a cache line boundary so it is never split
+/// across two lines — avoiding an extra cache miss on every sample. The 24 bytes
+/// of trailing padding are the cost of that guarantee.
 ///
 /// # Size assertion
 ///
 /// ```
-/// assert_eq!(std::mem::size_of::<Bs2bCoefficients>(), 40);
+/// assert_eq!(std::mem::size_of::<Bs2bCoefficients>(), 64);
 /// ```
 #[derive(Clone, Copy, Default)]
 #[repr(align(64))]
@@ -65,7 +66,7 @@ pub struct Bs2bCoefficients {
     pub b1_h: f64,
 }
 
-const _: () = assert!(std::mem::size_of::<Bs2bCoefficients>() == 40);
+const _: () = assert!(std::mem::size_of::<Bs2bCoefficients>() == 64);
 
 impl Bs2bCoefficients {
     /// Compute coefficients from cutoff frequency, crossfeed level, and sample rate.
