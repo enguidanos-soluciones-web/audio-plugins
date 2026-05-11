@@ -28,6 +28,14 @@
 /// Reference: https://www.firstpr.com.au/dsp/pink-noise/
 ///
 /// Zero allocations, no external dependencies.
+///
+/// # Size
+///
+/// 1 × u64 + 6 × f64 = 56 bytes of data, padded to 64 bytes by `#[repr(align(64))]`.
+/// All seven fields are read and written on every call to [`PinkNoise::next`], so
+/// they fit exactly in one cache line with no wasted fetch.
+///
+#[repr(align(64))]
 pub struct PinkNoise {
     // xorshift64 PRNG state (must be non-zero)
     rng: u64,
@@ -39,6 +47,8 @@ pub struct PinkNoise {
     b4: f64,
     b5: f64,
 }
+
+const _: () = assert!(std::mem::size_of::<PinkNoise>() == 64);
 
 impl PinkNoise {
     /// Create a new generator with a fixed non-zero seed and zeroed filter state.
