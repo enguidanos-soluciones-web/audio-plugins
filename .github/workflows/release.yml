@@ -8,6 +8,7 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
 
 jobs:
   # ── macOS universal (arm64 + x86_64) ────────────────────────────────────────
@@ -56,10 +57,10 @@ jobs:
           fi
 
       - name: Build arm64
-        run: cargo build --release -p ${{ env.CRATE_NAME }} --target aarch64-apple-darwin
+        run: cargo build --lock --release -p ${{ env.CRATE_NAME }} --target aarch64-apple-darwin
 
       - name: Build x86_64
-        run: cargo build --release -p ${{ env.CRATE_NAME }} --target x86_64-apple-darwin
+        run: cargo build --lock --release -p ${{ env.CRATE_NAME }} --target x86_64-apple-darwin
 
       - name: Create universal binary with lipo
         run: |
@@ -171,7 +172,7 @@ jobs:
           fi
 
       - name: Build
-        run: cargo build --release -p ${{ env.CRATE_NAME }}
+        run: cargo build --lock --release -p ${{ env.CRATE_NAME }}
 
       - name: Package .clap
         run: cp target/release/lib${{ env.PLUGIN_NAME }}.so ${{ env.PLUGIN_NAME }}.clap
@@ -232,7 +233,7 @@ jobs:
           fi
 
       - name: Build
-        run: cargo build --release -p ${{ env.CRATE_NAME }}
+        run: cargo build --lock --release -p ${{ env.CRATE_NAME }}
 
       - name: Package .clap
         shell: pwsh
