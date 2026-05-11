@@ -33,27 +33,43 @@
 /// | 75°   | 635 μs |
 ///
 /// Intermediate values are linearly interpolated by [`ItdDelay::angle_to_delay_samples`].
+///
+/// # Size
+///
+/// The circular buffers are `Box<[f64; CAPACITY]>` — fixed-size arrays allocated
+/// on the heap. This has three advantages over `Vec<f64>`:
+/// - No `len`/`capacity` overhead in the `Vec` header.
+/// - The `capacity` field is eliminated from the struct; `CAPACITY` is a
+///   compile-time constant, so `% CAPACITY` can be reduced to `& (CAPACITY - 1)`
+///   by the compiler (512 = 2⁹).
+/// - Guaranteed heap allocation regardless of where `ItdDelay` is instantiated,
+///   avoiding accidental 8 KB stack frames.
+///
+/// The struct itself is 2 × pointer + `write_ptr` = 24 bytes, padded to 64 bytes
+/// by `#[repr(align(64))]`. All three fields are hot on every sample.
+#[repr(align(64))]
 pub struct ItdDelay {
-    buf_l: Vec<f64>,
-    buf_r: Vec<f64>,
+    buf_l: Box<[f64; Self::CAPACITY]>,
+    buf_r: Box<[f64; Self::CAPACITY]>,
     write_ptr: usize,
-    capacity: usize,
 }
+
+const _: () = assert!(std::mem::size_of::<ItdDelay>() == 64);
 
 impl ItdDelay {
     /// Circular buffer capacity in samples.
     ///
     /// Maximum delay at 192 kHz: 635 μs × 192 000 ≈ 122 samples. 512 gives
     /// safe headroom for any realistic sample rate and angle combination.
+    /// 512 = 2⁹, so `% CAPACITY` compiles to a bitwise `& 511`.
     const CAPACITY: usize = 512;
 
-    /// Create a new delay line with zeroed buffers.
+    /// Create a new delay line with zeroed buffers allocated on the heap.
     pub fn new() -> Self {
         Self {
-            buf_l: vec![0.0; Self::CAPACITY],
-            buf_r: vec![0.0; Self::CAPACITY],
+            buf_l: Box::new([0.0; Self::CAPACITY]),
+            buf_r: Box::new([0.0; Self::CAPACITY]),
             write_ptr: 0,
-            capacity: Self::CAPACITY,
         }
     }
 
@@ -92,14 +108,14 @@ impl ItdDelay {
         let delay_floor = delay_samples.floor() as usize;
         let frac = delay_samples - delay_samples.floor();
 
-        let idx0 = (self.write_ptr + self.capacity - delay_floor) % self.capacity;
-        let idx1 = (self.write_ptr + self.capacity - delay_floor - 1) % self.capacity;
+        let idx0 = (self.write_ptr + Self::CAPACITY - delay_floor) % Self::CAPACITY;
+        let idx1 = (self.write_ptr + Self::CAPACITY - delay_floor - 1) % Self::CAPACITY;
 
         let out_l = self.buf_l[idx0] * (1.0 - frac) + self.buf_l[idx1] * frac;
         let out_r = self.buf_r[idx0] * (1.0 - frac) + self.buf_r[idx1] * frac;
 
         // Advance write pointer
-        self.write_ptr = (self.write_ptr + 1) % self.capacity;
+        self.write_ptr = (self.write_ptr + 1) % Self::CAPACITY;
 
         (out_l, out_r)
     }
