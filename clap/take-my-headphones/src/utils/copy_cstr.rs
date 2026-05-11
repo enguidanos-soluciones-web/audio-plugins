@@ -15,6 +15,18 @@
 
 use std::ffi::c_char;
 
+/// Copy a UTF-8 byte slice into a null-terminated C string buffer.
+///
+/// Writes at most `dst.len() - 1` bytes from `src`, then appends a null terminator.
+/// Always null-terminates `dst`, even if `src` is longer than the buffer.
+///
+/// # Examples
+///
+/// ```
+/// let mut buf = [0i8; 8];
+/// copy_cstr(&mut buf, b"hello");
+/// assert_eq!(buf[5], 0); // null terminator
+/// ```
 pub fn copy_cstr(dst: &mut [c_char], src: &[u8]) {
     let len = src.len().min(dst.len() - 1);
     for (d, s) in dst[..len].iter_mut().zip(src[..len].iter()) {
