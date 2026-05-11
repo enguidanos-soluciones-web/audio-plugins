@@ -12,21 +12,59 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
-
 use super::{Parameter, Select};
+use std::{fmt::Display, str::FromStr};
 
+#[repr(u8)]
 #[derive(Clone, Copy)]
-pub struct LRSwap;
+pub enum LRSwap {
+    OFF = 0,
+    ON = 1,
+}
 
-impl LRSwap {
-    pub const OFF: u8 = 0;
-    pub const ON: u8 = 1;
-
-    pub fn label(v: u8) -> &'static str {
-        match v {
-            Self::ON => "On",
-            _ => "Off",
+impl Display for LRSwap {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::ON => write!(f, "On"),
+            Self::OFF => write!(f, "Off"),
         }
+    }
+}
+
+impl FromStr for LRSwap {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "On" => Ok(Self::ON),
+            "Off" => Ok(Self::OFF),
+            _ => Err(()),
+        }
+    }
+}
+
+impl From<u8> for LRSwap {
+    fn from(v: u8) -> Self {
+        match v {
+            1 => Self::ON,
+            _ => Self::OFF,
+        }
+    }
+}
+
+/// Convert from a raw CLAP parameter value (f64) to [`LRSwap`].
+///
+/// CLAP stores all parameter values as `f64`, including stepped/enum parameters.
+/// This impl rounds to the nearest integer before casting to `u8`, matching the
+/// discrete steps defined in [`Parameter<LRSwap, Select>`].
+///
+/// The cast `f64 → u8` is safe here because valid parameter values are always
+/// in `[0.0, 1.0]` (enforced by the host via `min_value`/`max_value`). Values
+/// outside that range — which should never occur in practice — fall back to
+/// [`LRSwap::OFF`] via the `From<u8>` impl.
+impl From<f64> for LRSwap {
+    fn from(v: f64) -> Self {
+        Self::from(v.round() as u8)
     }
 }
 
@@ -36,11 +74,11 @@ impl Parameter<LRSwap, Select> {
     pub const fn new() -> Self {
         Self {
             id: Self::ID,
-            name: "LR Swap",
+            name: "L/R Swap",
             gestures: 0,
             behave: Select {
-                options: &[LRSwap::OFF, LRSwap::ON],
-                def: LRSwap::OFF,
+                options: &[LRSwap::OFF as u8, LRSwap::ON as u8],
+                def: LRSwap::OFF as u8,
             },
             _marker_type: std::marker::PhantomData,
             _marker_behaviour: std::marker::PhantomData,

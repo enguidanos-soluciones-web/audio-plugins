@@ -16,38 +16,38 @@ where
     }
 }
 
-pub trait FillFromLeft {
+pub trait CopyFillFromLeft {
     type Output;
 
-    fn fill_from_left(self) -> Self::Output;
+    fn copy_fill_from_left(self) -> Self::Output;
 }
 
-impl<A, B> FillFromLeft for (A, B)
+impl<A, B> CopyFillFromLeft for (A, B)
 where
     A: Copy,
     B: Copy,
 {
     type Output = (A, A);
 
-    fn fill_from_left(self) -> Self::Output {
+    fn copy_fill_from_left(self) -> Self::Output {
         (self.0, self.0)
     }
 }
 
-pub trait FillFromRight {
+pub trait CopyFillFromRight {
     type Output;
 
-    fn fill_from_right(self) -> Self::Output;
+    fn copy_fill_from_right(self) -> Self::Output;
 }
 
-impl<A, B> FillFromRight for (A, B)
+impl<A, B> CopyFillFromRight for (A, B)
 where
     A: Copy,
     B: Copy,
 {
     type Output = (B, B);
 
-    fn fill_from_right(self) -> Self::Output {
+    fn copy_fill_from_right(self) -> Self::Output {
         (self.1, self.1)
     }
 }

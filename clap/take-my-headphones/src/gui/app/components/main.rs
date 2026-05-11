@@ -55,7 +55,7 @@ pub fn Main() -> Element {
         .behave
         .options
         .iter()
-        .map(|&v| LRSwap::label(v).to_string())
+        .map(|&v| LRSwap::from(v).to_string())
         .collect();
     let solo_options: Vec<String> = Parameter::<Solo, Select>::new()
         .behave

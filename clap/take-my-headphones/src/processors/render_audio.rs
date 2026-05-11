@@ -21,7 +21,7 @@ use crate::{
     state::AudioThreadState,
     utils::{
         decibel_conversion::{DecibelConversion, db_to_linear},
-        tuples::{FillFromLeft, FillFromRight, Reverse},
+        tuples::{CopyFillFromLeft, CopyFillFromRight, Reverse},
     },
 };
 
@@ -42,7 +42,7 @@ pub fn render_audio_f64(
     let angle = snapshot.values[Parameter::<Angle, Range>::ID];
     let calibration_mode = snapshot.values[Parameter::<CalibrationMode, Select>::ID];
     let center_gain = snapshot.values[Parameter::<Center, Range>::ID];
-    let lrswap = snapshot.values[Parameter::<LRSwap, Select>::ID];
+    let lrswap = LRSwap::from(snapshot.values[Parameter::<LRSwap, Select>::ID]);
     let solo = snapshot.values[Parameter::<Solo, Select>::ID];
     let phase = snapshot.values[Parameter::<Phase, Select>::ID];
     let makeup_gain = snapshot.values[Parameter::<Gain, Range>::ID];
@@ -80,7 +80,7 @@ pub fn render_audio_f64(
 
         // 1. L/R swap
         let mut lrswap_output = calibration_output;
-        if lrswap.round() as u8 == LRSwap::ON {
+        if matches!(lrswap, LRSwap::ON) {
             lrswap_output = calibration_output.reverse()
         };
 
@@ -112,10 +112,10 @@ pub fn render_audio_f64(
         // 6. Solo (post-matrix, copy processed channel to both ears)
         let mut solo_output = center_attenuated_output;
         if solo.round() as u8 == Solo::L {
-            solo_output = center_attenuated_output.fill_from_left();
+            solo_output = center_attenuated_output.copy_fill_from_left();
         };
         if solo.round() as u8 == Solo::R {
-            solo_output = center_attenuated_output.fill_from_right();
+            solo_output = center_attenuated_output.copy_fill_from_right();
         };
 
         // 7. Makeup gain (compensates level loss from bs2b/center processing)
@@ -141,7 +141,7 @@ pub fn render_audio_f32(
     let angle = snapshot.values[Parameter::<Angle, Range>::ID];
     let calibration_mode = snapshot.values[Parameter::<CalibrationMode, Select>::ID];
     let center_gain = snapshot.values[Parameter::<Center, Range>::ID];
-    let lrswap = snapshot.values[Parameter::<LRSwap, Select>::ID];
+    let lrswap = LRSwap::from(snapshot.values[Parameter::<LRSwap, Select>::ID]);
     let solo = snapshot.values[Parameter::<Solo, Select>::ID];
     let phase = snapshot.values[Parameter::<Phase, Select>::ID];
     let makeup_gain = snapshot.values[Parameter::<Gain, Range>::ID];
@@ -178,7 +178,7 @@ pub fn render_audio_f32(
 
         // 1. L/R swap
         let mut lrswap_output = calibration_output;
-        if lrswap.round() as u8 == LRSwap::ON {
+        if matches!(lrswap, LRSwap::ON) {
             lrswap_output = calibration_output.reverse()
         };
 
@@ -210,10 +210,10 @@ pub fn render_audio_f32(
         // 6. Solo (post-matrix, copy processed channel to both ears)
         let mut solo_output = center_attenuated_output;
         if solo.round() as u8 == Solo::L {
-            solo_output = center_attenuated_output.fill_from_left();
+            solo_output = center_attenuated_output.copy_fill_from_left();
         };
         if solo.round() as u8 == Solo::R {
-            solo_output = center_attenuated_output.fill_from_right();
+            solo_output = center_attenuated_output.copy_fill_from_right();
         };
 
         // 7. Makeup gain (compensates level loss from bs2b/center processing)
