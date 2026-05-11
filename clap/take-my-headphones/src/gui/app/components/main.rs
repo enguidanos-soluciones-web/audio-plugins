@@ -61,7 +61,7 @@ pub fn Main() -> Element {
         .behave
         .options
         .iter()
-        .map(|&v| Solo::label(v).to_string())
+        .map(|&v| Solo::from(v).to_string())
         .collect();
     let phase_options: Vec<String> = Parameter::<Phase, Select>::new()
         .behave

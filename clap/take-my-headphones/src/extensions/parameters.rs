@@ -180,7 +180,7 @@ pub extern "C" fn value_to_text(plugin: *const clap_plugin_t, id: clap_id, value
         Parameter::<Angle, Range>::ID => write!(cursor, "{:.0} deg\0", value).is_ok(),
         Parameter::<Gain, Range>::ID => write!(cursor, "{:.1} dB\0", value).is_ok(),
         Parameter::<LRSwap, Select>::ID => write!(cursor, "{}\0", LRSwap::from(value)).is_ok(),
-        Parameter::<Solo, Select>::ID => write!(cursor, "{}\0", Solo::label(value.round() as u8)).is_ok(),
+        Parameter::<Solo, Select>::ID => write!(cursor, "{}\0", Solo::from(value)).is_ok(),
         Parameter::<Phase, Select>::ID => write!(cursor, "{}\0", Phase::from(value)).is_ok(),
         _ => {
             let label = CalibrationMode::label(value.round() as u8);
@@ -217,11 +217,7 @@ pub extern "C" fn text_to_value(plugin: *const clap_plugin_t, _param_id: clap_id
         return true;
     }
     if _param_id as usize == Parameter::<Solo, Select>::ID {
-        let v = match s {
-            "L" => Solo::L as f64,
-            "R" => Solo::R as f64,
-            _ => Solo::OFF as f64,
-        };
+        let v = s.parse::<Solo>().unwrap_or(Solo::OFF) as u8 as f64;
         unsafe { *value = v };
         return true;
     }

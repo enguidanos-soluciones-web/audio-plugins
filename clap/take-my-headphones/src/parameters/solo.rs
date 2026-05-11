@@ -14,21 +14,62 @@
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 use super::{Parameter, Select};
+use std::{fmt::Display, str::FromStr};
 
+#[repr(u8)]
 #[derive(Clone, Copy)]
-pub struct Solo;
+pub enum Solo {
+    L = 0,
+    OFF = 1,
+    R = 2,
+}
 
-impl Solo {
-    pub const L: u8 = 0;
-    pub const OFF: u8 = 1;
-    pub const R: u8 = 2;
-
-    pub fn label(v: u8) -> &'static str {
-        match v {
-            Self::L => "L",
-            Self::R => "R",
-            _ => "Off",
+impl Display for Solo {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::L => write!(f, "L"),
+            Self::OFF => write!(f, "Off"),
+            Self::R => write!(f, "R"),
         }
+    }
+}
+
+impl FromStr for Solo {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "L" => Ok(Self::L),
+            "Off" => Ok(Self::OFF),
+            "R" => Ok(Self::R),
+            _ => Err(()),
+        }
+    }
+}
+
+impl From<u8> for Solo {
+    fn from(v: u8) -> Self {
+        match v {
+            0 => Self::L,
+            2 => Self::R,
+            _ => Self::OFF,
+        }
+    }
+}
+
+/// Convert from a raw CLAP parameter value (f64) to [`Solo`].
+///
+/// CLAP stores all parameter values as `f64`, including stepped/enum parameters.
+/// This impl rounds to the nearest integer before casting to `u8`, matching the
+/// discrete steps defined in [`Parameter<Solo, Select>`].
+///
+/// The cast `f64 → u8` is safe here because valid parameter values are always
+/// in `[0.0, 2.0]` (enforced by the host via `min_value`/`max_value`). Values
+/// outside that range — which should never occur in practice — fall back to
+/// [`Solo::OFF`] via the `From<u8>` impl.
+impl From<f64> for Solo {
+    fn from(v: f64) -> Self {
+        Self::from(v.round() as u8)
     }
 }
 
@@ -41,8 +82,8 @@ impl Parameter<Solo, Select> {
             name: "Solo",
             gestures: 0,
             behave: Select {
-                options: &[Solo::L, Solo::OFF, Solo::R],
-                def: Solo::OFF,
+                options: &[Solo::L as u8, Solo::OFF as u8, Solo::R as u8],
+                def: Solo::OFF as u8,
             },
             _marker_type: std::marker::PhantomData,
             _marker_behaviour: std::marker::PhantomData,

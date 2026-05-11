@@ -43,7 +43,7 @@ pub fn render_audio_f64(
     let calibration_mode = snapshot.values[Parameter::<CalibrationMode, Select>::ID];
     let center_gain = snapshot.values[Parameter::<Center, Range>::ID];
     let lrswap = LRSwap::from(snapshot.values[Parameter::<LRSwap, Select>::ID]);
-    let solo = snapshot.values[Parameter::<Solo, Select>::ID];
+    let solo = Solo::from(snapshot.values[Parameter::<Solo, Select>::ID]);
     let phase = Phase::from(snapshot.values[Parameter::<Phase, Select>::ID]);
     let makeup_gain = snapshot.values[Parameter::<Gain, Range>::ID];
 
@@ -111,10 +111,10 @@ pub fn render_audio_f64(
 
         // 6. Solo (post-matrix, copy processed channel to both ears)
         let mut solo_output = center_attenuated_output;
-        if solo.round() as u8 == Solo::L {
+        if matches!(solo, Solo::L) {
             solo_output = center_attenuated_output.copy_fill_from_left();
         };
-        if solo.round() as u8 == Solo::R {
+        if matches!(solo, Solo::R) {
             solo_output = center_attenuated_output.copy_fill_from_right();
         };
 
@@ -142,7 +142,7 @@ pub fn render_audio_f32(
     let calibration_mode = snapshot.values[Parameter::<CalibrationMode, Select>::ID];
     let center_gain = snapshot.values[Parameter::<Center, Range>::ID];
     let lrswap = LRSwap::from(snapshot.values[Parameter::<LRSwap, Select>::ID]);
-    let solo = snapshot.values[Parameter::<Solo, Select>::ID];
+    let solo = Solo::from(snapshot.values[Parameter::<Solo, Select>::ID]);
     let phase = Phase::from(snapshot.values[Parameter::<Phase, Select>::ID]);
     let makeup_gain = snapshot.values[Parameter::<Gain, Range>::ID];
 
@@ -209,10 +209,10 @@ pub fn render_audio_f32(
 
         // 6. Solo (post-matrix, copy processed channel to both ears)
         let mut solo_output = center_attenuated_output;
-        if solo.round() as u8 == Solo::L {
+        if matches!(solo, Solo::L) {
             solo_output = center_attenuated_output.copy_fill_from_left();
         };
-        if solo.round() as u8 == Solo::R {
+        if matches!(solo, Solo::R) {
             solo_output = center_attenuated_output.copy_fill_from_right();
         };
 
