@@ -73,38 +73,38 @@ impl Bs2bCoefficients {
 /// and mixed into the opposite output) and its highboost filter (applied to this
 /// channel's signal for its own output).
 pub struct Bs2bChannel {
-    pub lp_y1: f64,
-    pub hb_x1: f64,
-    pub hb_y1: f64,
+    pub lowpass_y1: f64,
+    pub highboost_x1: f64,
+    pub highboost_y1: f64,
 }
 
 impl Bs2bChannel {
     pub fn new() -> Self {
         Self {
-            lp_y1: 0.0,
-            hb_x1: 0.0,
-            hb_y1: 0.0,
+            lowpass_y1: 0.0,
+            highboost_x1: 0.0,
+            highboost_y1: 0.0,
         }
     }
 
     pub fn reset(&mut self) {
-        self.lp_y1 = 0.0;
-        self.hb_x1 = 0.0;
-        self.hb_y1 = 0.0;
+        self.lowpass_y1 = 0.0;
+        self.highboost_x1 = 0.0;
+        self.highboost_y1 = 0.0;
     }
 
     /// One-pole LP: y[n] = a0*x[n] + b1*y[n-1]
-    pub fn lp(&mut self, x: f64, c: &Bs2bCoefficients) -> f64 {
-        let y = c.a0 * x + c.b1 * self.lp_y1;
-        self.lp_y1 = y;
+    pub fn lowpass(&mut self, x: f64, coeffs: &Bs2bCoefficients) -> f64 {
+        let y = coeffs.a0 * x + coeffs.b1 * self.lowpass_y1;
+        self.lowpass_y1 = y;
         y
     }
 
     /// Highboost: y[n] = a0_h*x[n] + a1_h*x[n-1] + b1_h*y[n-1]
-    pub fn hb(&mut self, x: f64, c: &Bs2bCoefficients) -> f64 {
-        let y = c.a0_h * x + c.a1_h * self.hb_x1 + c.b1_h * self.hb_y1;
-        self.hb_x1 = x;
-        self.hb_y1 = y;
+    pub fn highboost(&mut self, x: f64, coeffs: &Bs2bCoefficients) -> f64 {
+        let y = coeffs.a0_h * x + coeffs.a1_h * self.highboost_x1 + coeffs.b1_h * self.highboost_y1;
+        self.highboost_x1 = x;
+        self.highboost_y1 = y;
         y
     }
 }
@@ -145,11 +145,12 @@ impl Bs2b {
     ///   outL = highboost(in_l) + lp(in_r_delayed)
     ///   outR = highboost(in_r) + lp(in_l_delayed)
     pub fn process_with_itd(&mut self, in_l: f64, in_r: f64, in_l_delayed: f64, in_r_delayed: f64) -> (f64, f64) {
-        let c = self.coeffs;
-        let hb_l = self.left.hb(in_l, &c);
-        let lp_r = self.right.lp(in_r_delayed, &c);
-        let hb_r = self.right.hb(in_r, &c);
-        let lp_l = self.left.lp(in_l_delayed, &c);
-        (hb_l + lp_r, hb_r + lp_l)
+        let highboost_l = self.left.highboost(in_l, &self.coeffs);
+        let highboost_r = self.right.highboost(in_r, &self.coeffs);
+
+        let lowpass_l = self.left.lowpass(in_l_delayed, &self.coeffs);
+        let lowpass_r = self.right.lowpass(in_r_delayed, &self.coeffs);
+
+        (highboost_l + lowpass_r, highboost_r + lowpass_l)
     }
 }
