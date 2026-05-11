@@ -44,16 +44,28 @@ use std::f64::consts::PI;
 /// | Default   | 700 Hz  | 4.5 dB  | −6.75 dB | −2.25 dB |
 /// | Chu Moy   | 700 Hz  | 6.0 dB  | −8.0 dB  | −2.0 dB  |
 /// | Jan Meier | 650 Hz  | 9.5 dB  | −10.917 dB | −1.417 dB |
+/// 5 × f64 = 40 bytes. Fits in a single 64-byte cache line with 24 bytes to spare.
+/// `#[repr(align(64))]` pins the struct to a cache line boundary so it is never
+/// split across two lines — avoiding an extra cache miss on every sample.
+///
+/// # Size assertion
+///
+/// ```
+/// assert_eq!(std::mem::size_of::<Bs2bCoefficients>(), 40);
+/// ```
 #[derive(Clone, Copy, Default)]
+#[repr(align(64))]
 pub struct Bs2bCoefficients {
-    /// One-pole LP (crossed path): y[n] = a0*x[n] + b1*y[n-1]
+    /// One-pole LP (crossed path): `y[n] = a0·x[n] + b1·y[n-1]`
     pub a0: f64,
     pub b1: f64,
-    /// First-order IIR highboost (direct path): y[n] = a0_h*x[n] + a1_h*x[n-1] + b1_h*y[n-1]
+    /// First-order IIR highboost (direct path): `y[n] = a0_h·x[n] + a1_h·x[n-1] + b1_h·y[n-1]`
     pub a0_h: f64,
     pub a1_h: f64,
     pub b1_h: f64,
 }
+
+const _: () = assert!(std::mem::size_of::<Bs2bCoefficients>() == 40);
 
 impl Bs2bCoefficients {
     /// Compute coefficients from cutoff frequency, crossfeed level, and sample rate.
