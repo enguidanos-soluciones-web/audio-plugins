@@ -1,6 +1,13 @@
 pub trait Reverse {
     type Output;
 
+    /// Swap the two elements of a tuple, returning `(B, A)` from `(A, B)`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// assert_eq!((1, 2).reverse(), (2, 1));
+    /// ```
     fn reverse(self) -> Self::Output;
 }
 
@@ -19,6 +26,13 @@ where
 pub trait CopyFillFromLeft {
     type Output;
 
+    /// Duplicate the left element of a tuple, returning `(A, A)` from `(A, B)`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// assert_eq!((1, 2).copy_fill_from_left(), (1, 1));
+    /// ```
     fn copy_fill_from_left(self) -> Self::Output;
 }
 
@@ -37,6 +51,13 @@ where
 pub trait CopyFillFromRight {
     type Output;
 
+    /// Duplicate the right element of a tuple, returning `(B, B)` from `(A, B)`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// assert_eq!((1, 2).copy_fill_from_right(), (2, 2));
+    /// ```
     fn copy_fill_from_right(self) -> Self::Output;
 }
 
