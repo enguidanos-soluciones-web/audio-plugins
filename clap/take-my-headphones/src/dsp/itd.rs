@@ -15,13 +15,24 @@
 
 /// Stereo ITD (Interaural Time Difference) delay.
 ///
-/// Applies the same fractional delay to both L and R channels independently.
-/// The caller uses the delayed output for the crossed path in bs2b, while
-/// passing the un-delayed signal for the direct path.
+/// ITD is the microsecond-scale difference in arrival time between the two ears
+/// when a sound source is off-centre. It is the dominant localisation cue below
+/// ~1.5 kHz — the same frequency range where bs2b crossfeed is most active.
 ///
-/// Angle → delay mapping (SPL Phonitor 3 / JSFX):
-///   0°  → 0 μs
-///   75° → 635 μs  (linear interpolation)
+/// This struct applies the same fractional delay to both L and R channels
+/// independently via a circular buffer with linear interpolation. The delayed
+/// output is used for the **crossed path** in bs2b (`process_with_itd`), while
+/// the undelayed signal is used for the **direct path**. The asymmetry between
+/// the two paths is what externalises the stereo image.
+///
+/// Angle → delay mapping (SPL Phonitor 3 / JSFX reference):
+///
+/// | Angle | Delay  |
+/// |-------|--------|
+/// | 0°    | 0 μs   |
+/// | 75°   | 635 μs |
+///
+/// Intermediate values are linearly interpolated by [`ItdDelay::angle_to_delay_samples`].
 pub struct ItdDelay {
     buf_l: Vec<f64>,
     buf_r: Vec<f64>,
@@ -30,9 +41,13 @@ pub struct ItdDelay {
 }
 
 impl ItdDelay {
-    /// Max delay at 192 kHz: 635 μs × 192 000 ≈ 122 samples. 512 is safe headroom.
+    /// Circular buffer capacity in samples.
+    ///
+    /// Maximum delay at 192 kHz: 635 μs × 192 000 ≈ 122 samples. 512 gives
+    /// safe headroom for any realistic sample rate and angle combination.
     const CAPACITY: usize = 512;
 
+    /// Create a new delay line with zeroed buffers.
     pub fn new() -> Self {
         Self {
             buf_l: vec![0.0; Self::CAPACITY],
@@ -42,6 +57,7 @@ impl ItdDelay {
         }
     }
 
+    /// Clear the delay buffers and reset the write pointer.
     pub fn reset(&mut self) {
         self.buf_l.fill(0.0);
         self.buf_r.fill(0.0);
@@ -49,14 +65,24 @@ impl ItdDelay {
     }
 
     /// Convert angle (degrees, 0–75) and sample rate to fractional delay in samples.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// assert_eq!(ItdDelay::angle_to_delay_samples(0.0, 44100.0), 0.0);
+    /// assert!((ItdDelay::angle_to_delay_samples(75.0, 44100.0) - 28.0).abs() < 1.0); // 635 μs × 44100 ≈ 28 samples
+    /// ```
     pub fn angle_to_delay_samples(angle_deg: f64, sample_rate: f64) -> f64 {
         const MAX_DELAY_US: f64 = 635.0;
         let delay_us = (angle_deg / 75.0).clamp(0.0, 1.0) * MAX_DELAY_US;
         delay_us * 1e-6 * sample_rate
     }
 
-    /// Write current sample pair to the buffer, then read back with fractional delay.
-    /// Returns `(delayed_l, delayed_r)`.
+    /// Write the current sample pair to the circular buffer, then read back with
+    /// fractional delay using linear interpolation between adjacent samples.
+    ///
+    /// Returns `(delayed_l, delayed_r)`. At `delay_samples = 0.0` the output
+    /// equals the input (zero-delay passthrough).
     pub fn process(&mut self, sample: (f64, f64), delay_samples: f64) -> (f64, f64) {
         // Write current sample
         self.buf_l[self.write_ptr] = sample.0;
