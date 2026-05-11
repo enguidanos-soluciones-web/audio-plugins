@@ -13,18 +13,38 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
+/// Selects the dB scale and converts dB values to linear multipliers.
+///
+/// dB always means `factor * log10(x / x_ref)`. The factor differs by domain:
+/// - `Amplitude` (voltage, pressure, PCM samples): factor = **20**
+/// - `Power` (watts, intensity): factor = **10**
+///
+/// The two scales are consistent: a 6 dB amplitude gain equals a 6 dB power gain
+/// because power is proportional to amplitude squared (`P ∝ A²`), and
+/// `20·log10(A) = 10·log10(A²)`.
 pub enum DecibelConversion {
+    /// For amplitude quantities: `dB = 20·log10(A)`, inverse `A = 10^(dB/20)`.
     Amplitude,
+    /// For power quantities: `dB = 10·log10(P)`, inverse `P = 10^(dB/10)`.
     #[allow(dead_code)]
     Power,
 }
 
-pub fn db_to_linear(db: f64, conv: DecibelConversion) -> f64 {
-    f64::powf(
-        10.0,
-        db / match conv {
-            DecibelConversion::Amplitude => 20.0,
-            DecibelConversion::Power => 10.0,
-        },
-    )
+impl DecibelConversion {
+    /// Convert a dB value to a linear multiplier.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// assert_eq!(DecibelConversion::Amplitude.to_linear(0.0), 1.0);
+    /// assert!((DecibelConversion::Amplitude.to_linear(6.0) - 2.0).abs() < 0.01);
+    /// assert!((DecibelConversion::Amplitude.to_linear(-6.0) - 0.5).abs() < 0.01);
+    /// ```
+    pub fn to_linear(&self, db: f64) -> f64 {
+        let factor = match self {
+            Self::Amplitude => 20.0,
+            Self::Power => 10.0,
+        };
+        f64::powf(10.0, db / factor)
+    }
 }

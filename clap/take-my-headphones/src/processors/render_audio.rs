@@ -20,7 +20,7 @@ use crate::{
     },
     state::AudioThreadState,
     utils::{
-        decibel_conversion::{DecibelConversion, db_to_linear},
+        decibel_conversion::DecibelConversion,
         tuples::{CopyFillFromLeft, CopyFillFromRight, Reverse},
     },
 };
@@ -106,7 +106,7 @@ pub fn render_audio_f64(
         // 5. M/S center attenuation (SPL Phonitor 3 Center knob)
         let mid = (bs2b_output.0 + bs2b_output.1) * 0.5;
         let side = (bs2b_output.0 - bs2b_output.1) * 0.5;
-        let mid_gain = db_to_linear(center_gain, DecibelConversion::Amplitude);
+        let mid_gain = DecibelConversion::Amplitude.to_linear(center_gain);
         let center_attenuated_output = (mid * mid_gain + side, mid * mid_gain - side);
 
         // 6. Solo (post-matrix, copy processed channel to both ears)
@@ -119,8 +119,8 @@ pub fn render_audio_f64(
         };
 
         // 7. Makeup gain (compensates level loss from bs2b/center processing)
-        out_l[i] = solo_output.0 * db_to_linear(makeup_gain, DecibelConversion::Amplitude);
-        out_r[i] = solo_output.1 * db_to_linear(makeup_gain, DecibelConversion::Amplitude);
+        out_l[i] = solo_output.0 * DecibelConversion::Amplitude.to_linear(makeup_gain);
+        out_r[i] = solo_output.1 * DecibelConversion::Amplitude.to_linear(makeup_gain);
     }
 }
 
@@ -204,7 +204,7 @@ pub fn render_audio_f32(
         // 5. M/S center attenuation (SPL Phonitor 3 Center knob)
         let mid = (bs2b_output.0 + bs2b_output.1) * 0.5;
         let side = (bs2b_output.0 - bs2b_output.1) * 0.5;
-        let mid_gain = db_to_linear(center_gain, DecibelConversion::Amplitude);
+        let mid_gain = DecibelConversion::Amplitude.to_linear(center_gain);
         let center_attenuated_output = (mid * mid_gain + side, mid * mid_gain - side);
 
         // 6. Solo (post-matrix, copy processed channel to both ears)
@@ -217,7 +217,7 @@ pub fn render_audio_f32(
         };
 
         // 7. Makeup gain (compensates level loss from bs2b/center processing)
-        out_l[i] = (solo_output.0 * db_to_linear(makeup_gain, DecibelConversion::Amplitude)) as f32;
-        out_r[i] = (solo_output.1 * db_to_linear(makeup_gain, DecibelConversion::Amplitude)) as f32;
+        out_l[i] = (solo_output.0 * DecibelConversion::Amplitude.to_linear(makeup_gain)) as f32;
+        out_r[i] = (solo_output.1 * DecibelConversion::Amplitude.to_linear(makeup_gain)) as f32;
     }
 }
