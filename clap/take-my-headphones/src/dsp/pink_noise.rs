@@ -41,6 +41,15 @@ pub struct PinkNoise {
 }
 
 impl PinkNoise {
+    /// Create a new generator with a fixed non-zero seed and zeroed filter state.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// let mut gen = PinkNoise::new();
+    /// let sample = gen.next();
+    /// assert!(sample.abs() <= 0.252); // bounded at -12 dBFS (10^(-12/20) ≈ 0.251)
+    /// ```
     pub fn new() -> Self {
         Self {
             rng: 0xdeadbeefcafe1337, // non-zero seed
@@ -53,6 +62,20 @@ impl PinkNoise {
         }
     }
 
+    /// Clear the filter state without resetting the PRNG.
+    ///
+    /// Resetting the PRNG would cause the same sample sequence to repeat after
+    /// every reset, producing audible periodicity during calibration.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// let mut gen = PinkNoise::new();
+    /// for _ in 0..1000 { gen.next(); } // warm up filters
+    /// gen.reset();
+    /// let sample = gen.next();
+    /// assert!(sample.abs() <= 0.252);
+    /// ```
     pub fn reset(&mut self) {
         self.b0 = 0.0;
         self.b1 = 0.0;
@@ -63,7 +86,21 @@ impl PinkNoise {
         // Keep rng state — resetting it would produce the same sequence on every reset
     }
 
-    /// Generate one sample of pink noise, scaled to -12 dBFS RMS target.
+    /// Generate one sample of pink noise, scaled to -12 dBFS peak target.
+    ///
+    /// Output is clamped to `[-1, 1]` before the -12 dBFS scale factor
+    /// (`10^(-12/20) ≈ 0.251`), so individual samples are always within
+    /// `[-0.251, 0.251]`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// let mut gen = PinkNoise::new();
+    /// for _ in 0..44100 {
+    ///     let s = gen.next();
+    ///     assert!(s.abs() <= 0.252);
+    /// }
+    /// ```
     #[inline]
     pub fn next(&mut self) -> f64 {
         let white = self.white();
@@ -81,7 +118,10 @@ impl PinkNoise {
         pink.clamp(-1.0, 1.0) * 10f64.powf(-12f64 / 20f64)
     }
 
-    /// xorshift64 → uniform f64 in [-1, 1].
+    /// xorshift64 PRNG → uniform f64 in [-1, 1].
+    ///
+    /// Three shift-xor operations give period 2^64 - 1. The u64 result is
+    /// reinterpreted as i64 and divided by `i64::MAX` to map to [-1, 1].
     #[inline]
     fn white(&mut self) -> f64 {
         self.rng ^= self.rng << 13;
