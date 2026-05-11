@@ -17,15 +17,33 @@ use std::f64::consts::PI;
 
 /// Coefficients for the bs2b two-filter crossfeed structure.
 ///
-/// Signal chain per channel:
-///   outL = highboost(inL) + lp(inR)
-///   outR = highboost(inR) + lp(inL)
+/// bs2b simulates the natural crosstalk that occurs when listening to stereo
+/// speakers: the right ear hears a delayed, attenuated, low-pass-filtered copy
+/// of the left channel and vice versa. Without this, headphone listening is
+/// unnaturally wide because each ear receives only one channel.
 ///
-/// Reference: https://bs2b.sourceforge.net/
+/// Each output channel is the sum of two filtered paths:
+///
+/// ```text
+/// outL = highboost(inL) + lp(inR)
+/// outR = highboost(inR) + lp(inL)
+/// ```
+///
+/// - **LP (crossed path)**: attenuated one-pole lowpass applied to the opposite
+///   channel, simulating the high-frequency shadowing of the head (HRTF).
+/// - **Highboost (direct path)**: first-order IIR shelf that boosts highs
+///   slightly to compensate for the overall level reduction introduced by the
+///   LP mix.
+///
+/// Reference: <https://bs2b.sourceforge.net/>
+///
 /// Canonical presets:
-///   Default:   Fc=700 Hz, feed=4.5 dB  (Gd=-6.75, Ad_h=-2.25)
-///   Chu Moy:   Fc=700 Hz, feed=6.0 dB  (Gd=-8.0,  Ad_h=-2.0 )
-///   Jan Meier: Fc=650 Hz, feed=9.5 dB  (Gd=-10.917, Ad_h=-1.417)
+///
+/// | Name      | Fc      | Feed    | Gd       | Ad_h     |
+/// |-----------|---------|---------|----------|----------|
+/// | Default   | 700 Hz  | 4.5 dB  | −6.75 dB | −2.25 dB |
+/// | Chu Moy   | 700 Hz  | 6.0 dB  | −8.0 dB  | −2.0 dB  |
+/// | Jan Meier | 650 Hz  | 9.5 dB  | −10.917 dB | −1.417 dB |
 #[derive(Clone, Copy, Default)]
 pub struct Bs2bCoefficients {
     /// One-pole LP (crossed path): y[n] = a0*x[n] + b1*y[n-1]
@@ -38,12 +56,17 @@ pub struct Bs2bCoefficients {
 }
 
 impl Bs2bCoefficients {
-    /// Compute from cutoff (Hz), crossfeed level (dB), sample rate.
+    /// Compute coefficients from cutoff frequency, crossfeed level, and sample rate.
     ///
-    /// Gd/Ad_h split uses the Default preset ratio:
-    ///   Gd = -(feed * 1.5)   →  -6.75 dB at feed=4.5
-    ///   Ad_h = -(feed * 0.5) →  -2.25 dB at feed=4.5
-    /// This matches the bs2b Default preset exactly.
+    /// `feed_db` is the total perceived crossfeed. It is split into two parts
+    /// using the 3:1 ratio from the bs2b Default preset:
+    ///
+    /// - `Gd = -(feed * 1.5)` — attenuation of the crossed LP path in dB.
+    /// - `Ad_h = -(feed * 0.5)` — low-frequency attenuation of the direct highboost in dB.
+    ///
+    /// The perceived crossfeed equals `|Gd| - |Ad_h| = feed_db` (the two paths
+    /// partially cancel, leaving the intended feed level at the listener's ear).
+    /// The 3:1 ratio is empirical, derived from Sergey Umansky's original presets.
     pub fn compute(fc_hz: f64, feed_db: f64, sample_rate: f64) -> Self {
         let gd = -(feed_db * 1.5);
         let ad_h = -(feed_db * 0.5);
@@ -68,10 +91,13 @@ impl Bs2bCoefficients {
     }
 }
 
-/// Per-channel filter state.
-/// Each channel holds state for both its LP filter (applied to this channel's signal
-/// and mixed into the opposite output) and its highboost filter (applied to this
-/// channel's signal for its own output).
+/// Per-channel filter state for the bs2b crossfeed structure.
+///
+/// Each channel owns the delay memory for both its filters:
+/// - The **lowpass** state (`lowpass_y1`) is fed the *opposite* channel's signal
+///   and its output is mixed into this channel's output.
+/// - The **highboost** state (`highboost_x1`, `highboost_y1`) is fed this
+///   channel's own signal for the direct path.
 pub struct Bs2bChannel {
     pub lowpass_y1: f64,
     pub highboost_x1: f64,
@@ -79,6 +105,7 @@ pub struct Bs2bChannel {
 }
 
 impl Bs2bChannel {
+    /// Create a new channel with zeroed filter state.
     pub fn new() -> Self {
         Self {
             lowpass_y1: 0.0,
@@ -87,20 +114,28 @@ impl Bs2bChannel {
         }
     }
 
+    /// Clear all filter state (use on transport stop or reset).
     pub fn reset(&mut self) {
         self.lowpass_y1 = 0.0;
         self.highboost_x1 = 0.0;
         self.highboost_y1 = 0.0;
     }
 
-    /// One-pole LP: y[n] = a0*x[n] + b1*y[n-1]
+    /// One-pole lowpass: `y[n] = a0·x[n] + b1·y[n-1]`
+    ///
+    /// Applied to the opposite channel's signal; output is mixed into this
+    /// channel's output to simulate head-shadowing crosstalk.
     pub fn lowpass(&mut self, x: f64, coeffs: &Bs2bCoefficients) -> f64 {
         let y = coeffs.a0 * x + coeffs.b1 * self.lowpass_y1;
         self.lowpass_y1 = y;
         y
     }
 
-    /// Highboost: y[n] = a0_h*x[n] + a1_h*x[n-1] + b1_h*y[n-1]
+    /// First-order IIR highboost: `y[n] = a0_h·x[n] + a1_h·x[n-1] + b1_h·y[n-1]`
+    ///
+    /// Applied to this channel's own signal. The negative `a1_h` creates a
+    /// high-frequency shelf that compensates for the low-frequency energy added
+    /// by the crossed LP path, preserving the overall tonal balance.
     pub fn highboost(&mut self, x: f64, coeffs: &Bs2bCoefficients) -> f64 {
         let y = coeffs.a0_h * x + coeffs.a1_h * self.highboost_x1 + coeffs.b1_h * self.highboost_y1;
         self.highboost_x1 = x;
@@ -109,6 +144,7 @@ impl Bs2bChannel {
     }
 }
 
+/// Top-level bs2b processor: two [`Bs2bChannel`]s and shared [`Bs2bCoefficients`].
 pub struct Bs2b {
     pub left: Bs2bChannel,
     pub right: Bs2bChannel,
@@ -116,6 +152,7 @@ pub struct Bs2b {
 }
 
 impl Bs2b {
+    /// Create a new processor with zeroed state and default (unity) coefficients.
     pub fn new() -> Self {
         Self {
             left: Bs2bChannel::new(),
@@ -124,18 +161,28 @@ impl Bs2b {
         }
     }
 
+    /// Recompute coefficients. Call once per audio block, before [`Bs2b::process_with_itd`].
     pub fn update_coeffs(&mut self, fc_hz: f64, feed_db: f64, sample_rate: f64) {
         self.coeffs = Bs2bCoefficients::compute(fc_hz, feed_db, sample_rate);
     }
 
+    /// Clear filter state on both channels (use on transport stop or reset).
     pub fn reset(&mut self) {
         self.left.reset();
         self.right.reset();
     }
 
-    /// Process with ITD: direct path uses `in_l`/`in_r`, crossed path uses pre-delayed signals.
-    ///   outL = highboost(in_l) + lp(in_r_delayed)
-    ///   outR = highboost(in_r) + lp(in_l_delayed)
+    /// Process one stereo sample with pre-computed ITD delay.
+    ///
+    /// `sample` is the undelayed signal used for the **direct** (highboost) path.
+    /// `delayed` is the ITD-delayed signal used for the **crossed** (LP) path.
+    /// The two are kept separate so the ITD delay only affects the crossfeed,
+    /// not the direct path — matching real speaker geometry.
+    ///
+    /// ```text
+    /// outL = highboost(sample.0) + lp(delayed.1)
+    /// outR = highboost(sample.1) + lp(delayed.0)
+    /// ```
     pub fn process_with_itd(&mut self, sample: (f64, f64), delayed: (f64, f64)) -> (f64, f64) {
         let highboost_l = self.left.highboost(sample.0, &self.coeffs);
         let highboost_r = self.right.highboost(sample.1, &self.coeffs);
