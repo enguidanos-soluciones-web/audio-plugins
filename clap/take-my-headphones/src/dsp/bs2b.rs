@@ -44,6 +44,9 @@ use std::f64::consts::PI;
 /// | Default   | 700 Hz  | 4.5 dB  | −6.75 dB | −2.25 dB |
 /// | Chu Moy   | 700 Hz  | 6.0 dB  | −8.0 dB  | −2.0 dB  |
 /// | Jan Meier | 650 Hz  | 9.5 dB  | −10.917 dB | −1.417 dB |
+///
+/// Size:
+///
 /// 5 × f64 = 40 bytes of data, padded to 64 bytes by `#[repr(align(64))]`.
 /// The alignment pins the struct to a cache line boundary so it is never split
 /// across two lines — avoiding an extra cache miss on every sample. The 24 bytes
@@ -111,11 +114,21 @@ impl Bs2bCoefficients {
 ///   and its output is mixed into this channel's output.
 /// - The **highboost** state (`highboost_x1`, `highboost_y1`) is fed this
 ///   channel's own signal for the direct path.
+///
+/// Size:
+///
+/// 3 × f64 = 24 bytes of data, padded to 64 bytes by `#[repr(align(64))]`.
+/// Same rationale as [`Bs2bCoefficients`]: pins to a cache line boundary so
+/// state reads and writes during the per-sample loop never straddle two lines.
+///
+#[repr(align(64))]
 pub struct Bs2bChannel {
     pub lowpass_y1: f64,
     pub highboost_x1: f64,
     pub highboost_y1: f64,
 }
+
+const _: () = assert!(std::mem::size_of::<Bs2bChannel>() == 64);
 
 impl Bs2bChannel {
     /// Create a new channel with zeroed filter state.
