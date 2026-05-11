@@ -136,7 +136,7 @@ pub fn ParamCenterKnob() -> Element {
 
     rsx! {
         div {
-            class: "w-20 h-20",
+            class: "w-16 h-16",
             onmousedown: move |e| {
                 dispatcher(GuiRequest::BeginGesture(Parameter::<Center, Range>::ID));
                 let coords = e.data().client_coordinates();

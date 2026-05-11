@@ -25,84 +25,132 @@ use std::f64::consts::PI;
 /// Each output channel is the sum of two filtered paths:
 ///
 /// ```text
-/// outL = highboost(inL) + lp(inR)
-/// outR = highboost(inR) + lp(inL)
+/// outL = low_shelf(inL) + lp(inR)
+/// outR = low_shelf(inR) + lp(inL)
 /// ```
 ///
-/// - **LP (crossed path)**: attenuated one-pole lowpass applied to the opposite
-///   channel, simulating the high-frequency shadowing of the head (HRTF).
-/// - **Highboost (direct path)**: first-order IIR shelf that boosts highs
-///   slightly to compensate for the overall level reduction introduced by the
-///   LP mix.
+/// - **LP (crossed path)**: attenuated second-order (biquad) lowpass applied to
+///   the opposite channel, simulating the high-frequency shadowing of the head
+///   (HRTF). The Q parameter controls the slope sharpness around `fc_hz`:
+///   `Q = 0.707` (Butterworth) gives the maximally flat response; lower Q
+///   broadens the rolloff, higher Q introduces a resonance peak.
+/// - **Low shelf (direct path)**: first-order IIR filter that attenuates low
+///   frequencies on the direct channel, leaving highs at unity gain, to
+///   compensate for the overall level reduction introduced by the LP mix.
 ///
 /// Reference: <https://bs2b.sourceforge.net/>
 ///
 /// Canonical presets:
 ///
-/// | Name      | Fc      | Feed    | Gd       | Ad_h     |
-/// |-----------|---------|---------|----------|----------|
-/// | Default   | 700 Hz  | 4.5 dB  | −6.75 dB | −2.25 dB |
-/// | Chu Moy   | 700 Hz  | 6.0 dB  | −8.0 dB  | −2.0 dB  |
+/// | Name      | Fc      | Feed    | Gd         | Ad_h      |
+/// |-----------|---------|---------|------------|-----------|
+/// | Default   | 700 Hz  | 4.5 dB  | −6.75 dB   | −2.25 dB  |
+/// | Chu Moy   | 700 Hz  | 6.0 dB  | −8.0 dB    | −2.0 dB   |
 /// | Jan Meier | 650 Hz  | 9.5 dB  | −10.917 dB | −1.417 dB |
 ///
-/// Size:
+/// # Size
 ///
-/// 5 × f64 = 40 bytes of data, padded to 64 bytes by `#[repr(align(64))]`.
-/// The alignment pins the struct to a cache line boundary so it is never split
-/// across two lines — avoiding an extra cache miss on every sample. The 24 bytes
-/// of trailing padding are the cost of that guarantee.
-///
-/// # Size assertion
-///
-/// ```
-/// assert_eq!(std::mem::size_of::<Bs2bCoefficients>(), 64);
-/// ```
+/// 8 × f64 = 64 bytes of data, aligned to 64 bytes by `#[repr(align(64))]`.
+/// Zero padding — the struct fills one cache line exactly.
 #[derive(Clone, Copy, Default)]
 #[repr(align(64))]
 pub struct Bs2bCoefficients {
-    /// One-pole LP (crossed path): `y[n] = a0·x[n] + b1·y[n-1]`
-    pub a0: f64,
-    pub b1: f64,
-    /// First-order IIR highboost (direct path): `y[n] = a0_h·x[n] + a1_h·x[n-1] + b1_h·y[n-1]`
-    pub a0_h: f64,
-    pub a1_h: f64,
-    pub b1_h: f64,
+    /// Biquad LP feedforward coefficients (crossed path), Direct Form II Transposed.
+    ///
+    /// `H(z) = (b0_lp + b1_lp·z⁻¹ + b2_lp·z⁻²) / (1 + a1_lp·z⁻¹ + a2_lp·z⁻²)`
+    ///
+    /// All three feedforward coefficients are pre-scaled by the crossed path gain
+    /// `g = 10^(Gd/20)`, so DC gain = `g` without a separate multiply per sample.
+    pub b0_lp: f64,
+    pub b1_lp: f64,
+    pub b2_lp: f64,
+    /// Biquad LP feedback coefficients (normalised, sign-as-stored for TDF-II).
+    pub a1_lp: f64,
+    pub a2_lp: f64,
+    /// First-order IIR low shelf (direct path): `y[n] = a0_ls·x[n] + a1_ls·x[n-1] + b1_ls·y[n-1]`
+    pub a0_ls: f64,
+    pub a1_ls: f64,
+    pub b1_ls: f64,
 }
 
 const _: () = assert!(std::mem::size_of::<Bs2bCoefficients>() == 64);
 
 impl Bs2bCoefficients {
-    /// Compute coefficients from cutoff frequency, crossfeed level, and sample rate.
+    /// Compute coefficients from cutoff frequency, crossfeed level, Q, and sample rate.
     ///
-    /// `feed_db` is the total perceived crossfeed. It is split into two parts
-    /// using the 3:1 ratio from the bs2b Default preset:
+    /// ## Gd / Ad_h split
     ///
-    /// - `Gd = -(feed * 1.5)` — attenuation of the crossed LP path in dB.
-    /// - `Ad_h = -(feed * 0.5)` — low-frequency attenuation of the direct highboost in dB.
+    /// `feed_db` controls the crossed LP path gain: `Gd = -(feed_db × 1.5)`.
     ///
-    /// The perceived crossfeed equals `|Gd| - |Ad_h| = feed_db` (the two paths
-    /// partially cancel, leaving the intended feed level at the listener's ear).
-    /// The 3:1 ratio is empirical, derived from Sergey Umansky's original presets.
-    pub fn compute(fc_hz: f64, feed_db: f64, sample_rate: f64) -> Self {
+    /// `ad_h_db` controls the direct low shelf independently. In the
+    /// original bs2b design these were coupled via `Ad_h = -(feed_db × 0.5)`,
+    /// but this function accepts them as separate parameters so each can be
+    /// tuned without affecting the other.
+    ///
+    /// The perceived crossfeed = `|Gd| − |Ad_h|`. The 3:1 default ratio
+    /// is empirical, derived from Sergey Umansky's original presets.
+    ///
+    /// ## Biquad LP design (RBJ Audio EQ Cookbook)
+    ///
+    /// The crossed path uses a second-order lowpass designed with the bilinear
+    /// transform. Given `ω₀ = 2π·fc/fs` and `α = sin(ω₀) / (2·Q)`:
+    ///
+    /// ```text
+    /// b0 =  (1 − cos ω₀) / 2        a0 = 1 + α
+    /// b1 =   1 − cos ω₀       →  normalise all by a0
+    /// b2 =  (1 − cos ω₀) / 2        a1 = −2·cos ω₀
+    ///                                a2 =  1 − α
+    /// ```
+    ///
+    /// All feedforward coefficients are additionally scaled by `g = 10^(Gd/20)`
+    /// so the DC gain equals `g` directly, without a per-sample multiply.
+    ///
+    /// ## Q reference values
+    ///
+    /// | Q     | Character                          |
+    /// |-------|------------------------------------|
+    /// | 0.5   | Critically damped (no overshoot)   |
+    /// | 0.707 | Butterworth (maximally flat)       |
+    /// | 1.0   | Slight resonance at `fc`           |
+    /// | >1.0  | Resonance peak — use with care     |
+    pub fn compute(fc_hz: f64, feed_db: f64, q: f64, ad_h_db: f64, sample_rate: f64) -> Self {
         let gd = -(feed_db * 1.5);
-        let ad_h = -(feed_db * 0.5);
+        let ls_db = ad_h_db;
 
         let g = 10f64.powf(gd / 20.0);
-        let a_h = 10f64.powf(ad_h / 20.0);
-        let g_h = 1.0 - a_h;
+        let a_ls = 10f64.powf(ls_db / 20.0);
+        let g_ls = 1.0 - a_ls;
 
-        let gd_h = 20.0 * g_h.ln() / 10f64.ln();
-        let fc_h = fc_hz * 2f64.powf((gd - gd_h) / 12.0);
+        // Low shelf cutoff frequency (derived from gain split)
+        let gd_ls = 20.0 * g_ls.ln() / 10f64.ln();
+        let fc_ls = fc_hz * 2f64.powf((gd - gd_ls) / 12.0);
 
-        let x = (-2.0 * PI * fc_hz / sample_rate).exp();
-        let x_h = (-2.0 * PI * fc_h / sample_rate).exp();
+        // Biquad LP — RBJ Audio EQ Cookbook, bilinear transform
+        let w0 = 2.0 * PI * fc_hz / sample_rate;
+        let cos_w0 = w0.cos();
+        let sin_w0 = w0.sin();
+        let alpha = sin_w0 / (2.0 * q);
+        let a0_norm = 1.0 + alpha;
+
+        // Feedforward scaled by g → DC gain = g (crossed path attenuation)
+        let b0_lp = g * (1.0 - cos_w0) / 2.0 / a0_norm;
+        let b1_lp = g * (1.0 - cos_w0) / a0_norm;
+        let b2_lp = b0_lp; // b2 == b0 for LP biquad
+        let a1_lp = -2.0 * cos_w0 / a0_norm;
+        let a2_lp = (1.0 - alpha) / a0_norm;
+
+        // Low shelf — first-order IIR, transition at fc_ls
+        let x_ls = (-2.0 * PI * fc_ls / sample_rate).exp();
 
         Self {
-            a0: g * (1.0 - x),
-            b1: x,
-            a0_h: 1.0 - g_h * (1.0 - x_h),
-            a1_h: -x_h,
-            b1_h: x_h,
+            b0_lp,
+            b1_lp,
+            b2_lp,
+            a1_lp,
+            a2_lp,
+            a0_ls: 1.0 - g_ls * (1.0 - x_ls),
+            a1_ls: -x_ls,
+            b1_ls: x_ls,
         }
     }
 }
@@ -110,22 +158,38 @@ impl Bs2bCoefficients {
 /// Per-channel filter state for the bs2b crossfeed structure.
 ///
 /// Each channel owns the delay memory for both its filters:
-/// - The **lowpass** state (`lowpass_y1`) is fed the *opposite* channel's signal
-///   and its output is mixed into this channel's output.
-/// - The **highboost** state (`highboost_x1`, `highboost_y1`) is fed this
+/// - The **lowpass** state (`lp_s1`, `lp_s2`) is fed the *opposite* channel's
+///   signal and its output is mixed into this channel's output.
+/// - The **low shelf** state (`lowshelf_x1`, `lowshelf_y1`) is fed this
 ///   channel's own signal for the direct path.
 ///
-/// Size:
+/// The biquad LP uses **Direct Form II Transposed (TDF-II)**. Compared to
+/// Direct Form I, TDF-II requires only 2 state variables instead of 4,
+/// and has better numerical precision for fixed-point and near-unity pole radii.
 ///
-/// 3 × f64 = 24 bytes of data, padded to 64 bytes by `#[repr(align(64))]`.
+/// TDF-II recurrence:
+///
+/// ```text
+/// y[n]     = b0·x[n] + s1
+/// s1_new   = b1·x[n] − a1·y[n] + s2
+/// s2_new   = b2·x[n] − a2·y[n]
+/// ```
+///
+/// # Size
+///
+/// 4 × f64 = 32 bytes of data, padded to 64 bytes by `#[repr(align(64))]`.
 /// Same rationale as [`Bs2bCoefficients`]: pins to a cache line boundary so
 /// state reads and writes during the per-sample loop never straddle two lines.
-///
 #[repr(align(64))]
 pub struct Bs2bChannel {
-    pub lowpass_y1: f64,
-    pub highboost_x1: f64,
-    pub highboost_y1: f64,
+    /// TDF-II biquad LP delay line — first state register.
+    pub lp_s1: f64,
+    /// TDF-II biquad LP delay line — second state register.
+    pub lp_s2: f64,
+    /// Low shelf one-sample input delay (`x[n-1]`).
+    pub lowshelf_x1: f64,
+    /// Low shelf one-sample output delay (`y[n-1]`).
+    pub lowshelf_y1: f64,
 }
 
 const _: () = assert!(std::mem::size_of::<Bs2bChannel>() == 64);
@@ -134,38 +198,47 @@ impl Bs2bChannel {
     /// Create a new channel with zeroed filter state.
     pub fn new() -> Self {
         Self {
-            lowpass_y1: 0.0,
-            highboost_x1: 0.0,
-            highboost_y1: 0.0,
+            lp_s1: 0.0,
+            lp_s2: 0.0,
+            lowshelf_x1: 0.0,
+            lowshelf_y1: 0.0,
         }
     }
 
     /// Clear all filter state (use on transport stop or reset).
     pub fn reset(&mut self) {
-        self.lowpass_y1 = 0.0;
-        self.highboost_x1 = 0.0;
-        self.highboost_y1 = 0.0;
+        self.lp_s1 = 0.0;
+        self.lp_s2 = 0.0;
+        self.lowshelf_x1 = 0.0;
+        self.lowshelf_y1 = 0.0;
     }
 
-    /// One-pole lowpass: `y[n] = a0·x[n] + b1·y[n-1]`
+    /// Second-order biquad lowpass via TDF-II.
     ///
     /// Applied to the opposite channel's signal; output is mixed into this
     /// channel's output to simulate head-shadowing crosstalk.
+    ///
+    /// ```text
+    /// y[n]   = b0·x[n] + s1
+    /// s1_new = b1·x[n] − a1·y[n] + s2
+    /// s2_new = b2·x[n] − a2·y[n]
+    /// ```
     pub fn lowpass(&mut self, x: f64, coeffs: &Bs2bCoefficients) -> f64 {
-        let y = coeffs.a0 * x + coeffs.b1 * self.lowpass_y1;
-        self.lowpass_y1 = y;
+        let y = coeffs.b0_lp * x + self.lp_s1;
+        self.lp_s1 = coeffs.b1_lp * x - coeffs.a1_lp * y + self.lp_s2;
+        self.lp_s2 = coeffs.b2_lp * x - coeffs.a2_lp * y;
         y
     }
 
-    /// First-order IIR highboost: `y[n] = a0_h·x[n] + a1_h·x[n-1] + b1_h·y[n-1]`
+    /// First-order IIR low shelf: `y[n] = a0_ls·x[n] + a1_ls·x[n-1] + b1_ls·y[n-1]`
     ///
-    /// Applied to this channel's own signal. The negative `a1_h` creates a
-    /// high-frequency shelf that compensates for the low-frequency energy added
-    /// by the crossed LP path, preserving the overall tonal balance.
-    pub fn highboost(&mut self, x: f64, coeffs: &Bs2bCoefficients) -> f64 {
-        let y = coeffs.a0_h * x + coeffs.a1_h * self.highboost_x1 + coeffs.b1_h * self.highboost_y1;
-        self.highboost_x1 = x;
-        self.highboost_y1 = y;
+    /// Applied to this channel's own signal (direct path). Attenuates low
+    /// frequencies by `ls_db` and passes high frequencies at unity gain,
+    /// shaping the direct path to complement the LP crossed path.
+    pub fn low_shelf(&mut self, x: f64, coeffs: &Bs2bCoefficients) -> f64 {
+        let y = coeffs.a0_ls * x + coeffs.a1_ls * self.lowshelf_x1 + coeffs.b1_ls * self.lowshelf_y1;
+        self.lowshelf_x1 = x;
+        self.lowshelf_y1 = y;
         y
     }
 }
@@ -188,8 +261,11 @@ impl Bs2b {
     }
 
     /// Recompute coefficients. Call once per audio block, before [`Bs2b::process_with_itd`].
-    pub fn update_coeffs(&mut self, fc_hz: f64, feed_db: f64, sample_rate: f64) {
-        self.coeffs = Bs2bCoefficients::compute(fc_hz, feed_db, sample_rate);
+    ///
+    /// `q` controls the biquad LP slope sharpness — `0.707` (Butterworth) is the
+    /// default. See [`Bs2bCoefficients::compute`] for the full Q reference table.
+    pub fn update_coeffs(&mut self, fc_hz: f64, feed_db: f64, q: f64, ad_h_db: f64, sample_rate: f64) {
+        self.coeffs = Bs2bCoefficients::compute(fc_hz, feed_db, q, ad_h_db, sample_rate);
     }
 
     /// Clear filter state on both channels (use on transport stop or reset).
@@ -200,22 +276,22 @@ impl Bs2b {
 
     /// Process one stereo sample with pre-computed ITD delay.
     ///
-    /// `sample` is the undelayed signal used for the **direct** (highboost) path.
+    /// `sample` is the undelayed signal used for the **direct** (low shelf) path.
     /// `delayed` is the ITD-delayed signal used for the **crossed** (LP) path.
     /// The two are kept separate so the ITD delay only affects the crossfeed,
     /// not the direct path — matching real speaker geometry.
     ///
     /// ```text
-    /// outL = highboost(sample.0) + lp(delayed.1)
-    /// outR = highboost(sample.1) + lp(delayed.0)
+    /// outL = low_shelf(sample.0) + lp(delayed.1)
+    /// outR = low_shelf(sample.1) + lp(delayed.0)
     /// ```
     pub fn process_with_itd(&mut self, sample: (f64, f64), delayed: (f64, f64)) -> (f64, f64) {
-        let highboost_l = self.left.highboost(sample.0, &self.coeffs);
-        let highboost_r = self.right.highboost(sample.1, &self.coeffs);
+        let lowshelf_l = self.left.low_shelf(sample.0, &self.coeffs);
+        let lowshelf_r = self.right.low_shelf(sample.1, &self.coeffs);
 
         let lowpass_l = self.left.lowpass(delayed.0, &self.coeffs);
         let lowpass_r = self.right.lowpass(delayed.1, &self.coeffs);
 
-        (highboost_l + lowpass_r, highboost_r + lowpass_l)
+        (lowshelf_l + lowpass_r, lowshelf_r + lowpass_l)
     }
 }

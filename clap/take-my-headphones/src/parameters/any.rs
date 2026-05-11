@@ -15,15 +15,17 @@
 
 use super::{Parameter, Range, Select};
 use crate::parameters::{
-    angle::Angle, calibration_mode::CalibrationMode, center::Center, cutoff::Cutoff, gain::Gain, lrswap::LRSwap, phase::Phase, solo::Solo,
-    xfeed::XFeed,
+    angle::Angle, bs2b_low_shelf::Bs2bLowShelf, calibration_mode::CalibrationMode, center::Center, cutoff::Cutoff, gain::Gain,
+    lrswap::LRSwap, phase::Phase, solo::Solo, xfeed::XFeed, xfeed_slope::XFeedSlope,
 };
 
-pub const PARAMS_COUNT: usize = 9;
+pub const PARAMS_COUNT: usize = 11;
 
 pub enum AnyParameter {
     Cutoff { inner: Parameter<Cutoff, Range> },
     XFeed { inner: Parameter<XFeed, Range> },
+    XFeedSlope { inner: Parameter<XFeedSlope, Range> },
+    Bs2bLowShelf { inner: Parameter<Bs2bLowShelf, Range> },
     CalibrationMode { inner: Parameter<CalibrationMode, Select> },
     Center { inner: Parameter<Center, Range> },
     Angle { inner: Parameter<Angle, Range> },
@@ -43,6 +45,12 @@ impl TryFrom<usize> for AnyParameter {
             }),
             Parameter::<XFeed, Range>::ID => Ok(AnyParameter::XFeed {
                 inner: Parameter::<XFeed, Range>::new(),
+            }),
+            Parameter::<XFeedSlope, Range>::ID => Ok(AnyParameter::XFeedSlope {
+                inner: Parameter::<XFeedSlope, Range>::new(),
+            }),
+            Parameter::<Bs2bLowShelf, Range>::ID => Ok(AnyParameter::Bs2bLowShelf {
+                inner: Parameter::<Bs2bLowShelf, Range>::new(),
             }),
             Parameter::<CalibrationMode, Select>::ID => Ok(AnyParameter::CalibrationMode {
                 inner: Parameter::<CalibrationMode, Select>::new(),

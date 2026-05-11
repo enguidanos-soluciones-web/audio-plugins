@@ -24,7 +24,13 @@ use dioxus::prelude::*;
 /// - `label`     — override label to display on the button (e.g. "Default *")
 /// - `on_select` — called with the chosen index
 #[component]
-pub fn Dropdown(options: Vec<String>, selected: Option<usize>, label: Option<String>, on_select: EventHandler<usize>) -> Element {
+pub fn Dropdown(
+    options: Vec<String>,
+    selected: Option<usize>,
+    label: Option<String>,
+    on_select: EventHandler<usize>,
+    #[props(default = false)] open_up: bool,
+) -> Element {
     let mut open = use_signal(|| false);
 
     let display = label.unwrap_or_else(|| selected.and_then(|i| options.get(i)).cloned().unwrap_or_else(|| "–".to_string()));
@@ -47,7 +53,7 @@ pub fn Dropdown(options: Vec<String>, selected: Option<usize>, label: Option<Str
 
             if *open.read() {
                 div {
-                    class: "absolute top-full left-0 mt-0.5 z-50 bg-neutral-800 border border-neutral-700 rounded shadow-lg min-w-full",
+                    class: if open_up { "absolute bottom-full left-0 mb-0.5 z-50 bg-neutral-800 border border-neutral-700 rounded shadow-lg min-w-full" } else { "absolute top-full left-0 mt-0.5 z-50 bg-neutral-800 border border-neutral-700 rounded shadow-lg min-w-full" },
                     for (i, option) in options.iter().enumerate() {
                         {
                             let option = option.clone();

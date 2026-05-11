@@ -28,6 +28,8 @@ impl ActiveDrag {
         let start_value = match &param {
             AnyParameter::Cutoff { inner } => inner.normalize(raw),
             AnyParameter::XFeed { inner } => inner.normalize(raw),
+            AnyParameter::XFeedSlope { inner } => inner.normalize(raw),
+            AnyParameter::Bs2bLowShelf { inner } => inner.normalize(raw),
             AnyParameter::Center { inner } => inner.normalize(raw),
             AnyParameter::Angle { inner } => inner.normalize(raw),
             AnyParameter::Gain { inner } => inner.normalize(raw),
@@ -39,6 +41,8 @@ impl ActiveDrag {
         let is_draggable = match &param {
             AnyParameter::Cutoff { inner } => inner.as_draggable().is_some(),
             AnyParameter::XFeed { inner } => inner.as_draggable().is_some(),
+            AnyParameter::XFeedSlope { inner } => inner.as_draggable().is_some(),
+            AnyParameter::Bs2bLowShelf { inner } => inner.as_draggable().is_some(),
             AnyParameter::Center { inner } => inner.as_draggable().is_some(),
             AnyParameter::Angle { inner } => inner.as_draggable().is_some(),
             AnyParameter::Gain { inner } => inner.as_draggable().is_some(),
@@ -62,6 +66,8 @@ impl ActiveDrag {
         match &self.param {
             AnyParameter::Cutoff { inner } => inner.id,
             AnyParameter::XFeed { inner } => inner.id,
+            AnyParameter::XFeedSlope { inner } => inner.id,
+            AnyParameter::Bs2bLowShelf { inner } => inner.id,
             AnyParameter::Center { inner } => inner.id,
             AnyParameter::Angle { inner } => inner.id,
             AnyParameter::Gain { inner } => inner.id,
@@ -76,6 +82,8 @@ impl ActiveDrag {
         match &self.param {
             AnyParameter::Cutoff { inner } => inner.as_draggable()?.on_drag(self.start_pos, self.start_value, (x, y)),
             AnyParameter::XFeed { inner } => inner.as_draggable()?.on_drag(self.start_pos, self.start_value, (x, y)),
+            AnyParameter::XFeedSlope { inner } => inner.as_draggable()?.on_drag(self.start_pos, self.start_value, (x, y)),
+            AnyParameter::Bs2bLowShelf { inner } => inner.as_draggable()?.on_drag(self.start_pos, self.start_value, (x, y)),
             AnyParameter::Center { inner } => inner.as_draggable()?.on_drag(self.start_pos, self.start_value, (x, y)),
             AnyParameter::Angle { inner } => inner.as_draggable()?.on_drag(self.start_pos, self.start_value, (x, y)),
             AnyParameter::Gain { inner } => inner.as_draggable()?.on_drag(self.start_pos, self.start_value, (x, y)),

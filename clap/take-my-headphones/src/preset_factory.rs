@@ -16,9 +16,10 @@
 use crate::{clap::*, parameters::any::PARAMS_COUNT, version::CLAP_VERSION_INIT};
 use std::ffi::{CStr, CString, c_char, c_void};
 
-// Param indices: 0=Cutoff, 1=XFeed, 2=Angle, 3=Center, 4=Gain, 5=LRSwap, 6=Solo, 7=Phase, 8=CalibrationMode
+// Param indices: 0=Cutoff, 1=XFeed, 2=Angle, 3=Center, 4=Gain, 5=LRSwap, 6=Solo, 7=Phase, 8=CalibrationMode, 9=XFeedSlope, 10=Bs2bLowShelf
 // bs2b canonical presets from https://bs2b.sourceforge.net/
-// Angle=30°, Center=0.0 dB (neutral), Gain=0.0 dB, LRSwap=Off, Solo=Off, Phase=Off, CalMode=Off
+// Angle=30°, Center=0.0 dB (neutral), Gain=0.0 dB, LRSwap=Off, Solo=Off, Phase=Off, CalMode=Off, Slope=0.707 (Butterworth)
+// Bs2bLowShelf = -(XFeed × 0.5) — canonical bs2b 3:1 ratio as starting point
 pub struct PresetDef {
     pub name: &'static str,
     pub load_key: &'static str,
@@ -29,20 +30,20 @@ pub const PRESETS: &[PresetDef] = &[
     PresetDef {
         name: "Default",
         load_key: "default",
-        //          Cutoff  XFeed  Angle  Center   Gain  LRSwap  Solo  Phase  CalMode
-        values: [822.0, 6.2, 30.0, -0.27, 0.0, 0.0, 1.0, 1.0, 0.0],
+        //          Cutoff  XFeed  Angle  Center   Gain  LRSwap  Solo  Phase  CalMode  Slope  Shelf
+        values: [822.0, 6.2, 30.0, -0.27, 0.0, 0.0, 1.0, 1.0, 0.0, 0.707, -3.1],
     },
     PresetDef {
         name: "Chu Moy",
         load_key: "chu-moy",
-        //          Cutoff  XFeed  Angle  Center   Gain  LRSwap  Solo  Phase  CalMode
-        values: [700.0, 6.0, 30.0, -0.27, 0.0, 0.0, 1.0, 1.0, 0.0],
+        //          Cutoff  XFeed  Angle  Center   Gain  LRSwap  Solo  Phase  CalMode  Slope  Shelf
+        values: [700.0, 6.0, 30.0, -0.27, 0.0, 0.0, 1.0, 1.0, 0.0, 0.707, -3.0],
     },
     PresetDef {
         name: "Jan Meier",
         load_key: "jan-meier",
-        //          Cutoff  XFeed  Angle  Center   Gain  LRSwap  Solo  Phase  CalMode
-        values: [650.0, 9.5, 30.0, -0.27, 0.0, 0.0, 1.0, 1.0, 0.0],
+        //          Cutoff  XFeed  Angle  Center   Gain  LRSwap  Solo  Phase  CalMode  Slope  Shelf
+        values: [650.0, 9.5, 30.0, -0.27, 0.0, 0.0, 1.0, 1.0, 0.0, 0.707, -4.75],
     },
 ];
 

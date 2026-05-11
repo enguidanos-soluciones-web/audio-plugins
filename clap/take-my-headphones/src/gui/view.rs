@@ -153,7 +153,6 @@ impl View {
                 0,
             );
         }
-
     }
 
     pub fn update_app_state(&mut self, _state: &GUIShared, parameters_values: &[f64; PARAMS_COUNT]) {

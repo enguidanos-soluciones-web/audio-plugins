@@ -27,6 +27,8 @@ impl ActiveClick {
             AnyParameter::Center { inner } => inner.gestures,
             AnyParameter::Angle { inner } => inner.gestures,
             AnyParameter::Gain { inner } => inner.gestures,
+            AnyParameter::XFeedSlope { inner } => inner.gestures,
+            AnyParameter::Bs2bLowShelf { inner } => inner.gestures,
             AnyParameter::CalibrationMode { inner } => inner.gestures,
             AnyParameter::LRSwap { inner } => inner.gestures,
             AnyParameter::Solo { inner } => inner.gestures,
@@ -55,6 +57,12 @@ impl ActiveClick {
                 inner.as_clickable()?.on_double_click()
             }
             AnyParameter::Gain { inner } if inner.gestures & PARAMETER_GESTURE_DOUBLE_CLICK != 0 => inner.as_clickable()?.on_double_click(),
+            AnyParameter::XFeedSlope { inner } if inner.gestures & PARAMETER_GESTURE_DOUBLE_CLICK != 0 => {
+                inner.as_clickable()?.on_double_click()
+            }
+            AnyParameter::Bs2bLowShelf { inner } if inner.gestures & PARAMETER_GESTURE_DOUBLE_CLICK != 0 => {
+                inner.as_clickable()?.on_double_click()
+            }
             AnyParameter::CalibrationMode { inner } if inner.gestures & PARAMETER_GESTURE_DOUBLE_CLICK != 0 => {
                 inner.as_clickable()?.on_double_click()
             }

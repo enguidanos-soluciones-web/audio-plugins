@@ -19,6 +19,7 @@ use crate::{
         Parameter, Range, Select,
         angle::Angle,
         any::{AnyParameter, PARAMS_COUNT},
+        bs2b_low_shelf::Bs2bLowShelf,
         calibration_mode::CalibrationMode,
         center::Center,
         cutoff::Cutoff,
@@ -27,6 +28,7 @@ use crate::{
         phase::Phase,
         solo::Solo,
         xfeed::XFeed,
+        xfeed_slope::XFeedSlope,
     },
     plugin::Plugin,
     processors::{handle_clap_event::handle_clap_event, sync_main_to_audio::sync_main_to_audio},
@@ -79,6 +81,20 @@ pub extern "C" fn get_info(plugin: *const clap_plugin_t, index: u32, information
             copy_cstr(&mut new_information.name, inner.name.as_bytes());
         }
         AnyParameter::XFeed { inner } => {
+            new_information.flags = CLAP_PARAM_IS_AUTOMATABLE as u32;
+            new_information.min_value = inner.behave.min;
+            new_information.max_value = inner.behave.max;
+            new_information.default_value = inner.behave.def;
+            copy_cstr(&mut new_information.name, inner.name.as_bytes());
+        }
+        AnyParameter::XFeedSlope { inner } => {
+            new_information.flags = CLAP_PARAM_IS_AUTOMATABLE as u32;
+            new_information.min_value = inner.behave.min;
+            new_information.max_value = inner.behave.max;
+            new_information.default_value = inner.behave.def;
+            copy_cstr(&mut new_information.name, inner.name.as_bytes());
+        }
+        AnyParameter::Bs2bLowShelf { inner } => {
             new_information.flags = CLAP_PARAM_IS_AUTOMATABLE as u32;
             new_information.min_value = inner.behave.min;
             new_information.max_value = inner.behave.max;
@@ -176,6 +192,8 @@ pub extern "C" fn value_to_text(plugin: *const clap_plugin_t, id: clap_id, value
     match id as usize {
         Parameter::<Cutoff, Range>::ID => write!(cursor, "{:.0} Hz\0", value).is_ok(),
         Parameter::<XFeed, Range>::ID => write!(cursor, "{:.1} dB\0", value).is_ok(),
+        Parameter::<XFeedSlope, Range>::ID => write!(cursor, "{}\0", Parameter::<XFeedSlope, Range>::format_value(value)).is_ok(),
+        Parameter::<Bs2bLowShelf, Range>::ID => write!(cursor, "{}\0", Parameter::<Bs2bLowShelf, Range>::format_value(value)).is_ok(),
         Parameter::<Center, Range>::ID => write!(cursor, "{:.2} dB\0", value).is_ok(),
         Parameter::<Angle, Range>::ID => write!(cursor, "{:.0} deg\0", value).is_ok(),
         Parameter::<Gain, Range>::ID => write!(cursor, "{:.1} dB\0", value).is_ok(),

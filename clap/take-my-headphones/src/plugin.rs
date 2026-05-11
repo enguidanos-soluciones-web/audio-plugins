@@ -59,7 +59,6 @@ use crate::{
     channel::channel,
     clap::*,
     descriptor::PLUGIN_DESCRIPTOR,
-    state::DspState,
     extensions::{audio_ports::AUDIO_PORTS_EXT, gui::GUI_EXT, parameters::PARAMETERS_EXT, preset_load::PRESET_LOAD_EXT, state::STATE_EXT},
     gestures::click::ActiveClick,
     parameters::any::PARAMS_COUNT,
@@ -70,6 +69,7 @@ use crate::{
         render_audio::{render_audio_f32, render_audio_f64},
         sync_main_to_audio::sync_main_to_audio,
     },
+    state::DspState,
     state::{AudioThreadState, GuiRequest, MainThreadState, ParamChange, ParamEvent, ParamSnapshot},
 };
 use arc_swap::ArcSwap;

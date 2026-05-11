@@ -15,8 +15,8 @@
 use crate::{
     dsp::itd::ItdDelay,
     parameters::{
-        Parameter, Range, Select, angle::Angle, calibration_mode::CalibrationMode, center::Center, cutoff::Cutoff, gain::Gain,
-        lrswap::LRSwap, phase::Phase, solo::Solo, xfeed::XFeed,
+        Parameter, Range, Select, angle::Angle, bs2b_low_shelf::Bs2bLowShelf, calibration_mode::CalibrationMode, center::Center,
+        cutoff::Cutoff, gain::Gain, lrswap::LRSwap, phase::Phase, solo::Solo, xfeed::XFeed, xfeed_slope::XFeedSlope,
     },
     state::AudioThreadState,
     utils::{
@@ -39,6 +39,8 @@ pub fn render_audio_f64(
 
     let cutoff = snapshot.values[Parameter::<Cutoff, Range>::ID];
     let xfeed = snapshot.values[Parameter::<XFeed, Range>::ID];
+    let xfeed_slope = snapshot.values[Parameter::<XFeedSlope, Range>::ID];
+    let bs2b_low_shelf = snapshot.values[Parameter::<Bs2bLowShelf, Range>::ID];
     let angle = snapshot.values[Parameter::<Angle, Range>::ID];
     let calibration_mode = snapshot.values[Parameter::<CalibrationMode, Select>::ID];
     let center_gain = snapshot.values[Parameter::<Center, Range>::ID];
@@ -100,7 +102,10 @@ pub fn render_audio_f64(
         );
 
         // 4. bs2b
-        audio_thread.dsp.bs2b.update_coeffs(cutoff, xfeed, audio_thread.sample_rate);
+        audio_thread
+            .dsp
+            .bs2b
+            .update_coeffs(cutoff, xfeed, xfeed_slope, bs2b_low_shelf, audio_thread.sample_rate);
         let bs2b_output = audio_thread.dsp.bs2b.process_with_itd(phase_inversion_output, itd_delayed_output);
 
         // 5. M/S center attenuation (SPL Phonitor 3 Center knob)
@@ -138,6 +143,8 @@ pub fn render_audio_f32(
 
     let cutoff = snapshot.values[Parameter::<Cutoff, Range>::ID];
     let xfeed = snapshot.values[Parameter::<XFeed, Range>::ID];
+    let xfeed_slope = snapshot.values[Parameter::<XFeedSlope, Range>::ID];
+    let bs2b_low_shelf = snapshot.values[Parameter::<Bs2bLowShelf, Range>::ID];
     let angle = snapshot.values[Parameter::<Angle, Range>::ID];
     let calibration_mode = snapshot.values[Parameter::<CalibrationMode, Select>::ID];
     let center_gain = snapshot.values[Parameter::<Center, Range>::ID];
@@ -198,7 +205,10 @@ pub fn render_audio_f32(
         );
 
         // 4. bs2b
-        audio_thread.dsp.bs2b.update_coeffs(cutoff, xfeed, audio_thread.sample_rate);
+        audio_thread
+            .dsp
+            .bs2b
+            .update_coeffs(cutoff, xfeed, xfeed_slope, bs2b_low_shelf, audio_thread.sample_rate);
         let bs2b_output = audio_thread.dsp.bs2b.process_with_itd(phase_inversion_output, itd_delayed_output);
 
         // 5. M/S center attenuation (SPL Phonitor 3 Center knob)

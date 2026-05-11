@@ -15,6 +15,7 @@
 
 pub mod angle;
 pub mod any;
+pub mod bs2b_low_shelf;
 pub mod calibration_mode;
 pub mod center;
 pub mod cutoff;
@@ -23,6 +24,7 @@ pub mod lrswap;
 pub mod phase;
 pub mod solo;
 pub mod xfeed;
+pub mod xfeed_slope;
 
 use std::marker::PhantomData;
 

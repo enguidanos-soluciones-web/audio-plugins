@@ -14,10 +14,14 @@
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 pub mod dropdown;
+pub mod head_view;
 pub mod header;
 pub mod main;
 pub mod param_angle_knob;
+pub mod param_bs2b_low_shelf_knob;
 pub mod param_center_knob;
 pub mod param_cutoff_knob;
 pub mod param_gain_knob;
 pub mod param_xfeed_knob;
+pub mod param_xfeed_slope_knob;
+pub mod xfeed_curve;

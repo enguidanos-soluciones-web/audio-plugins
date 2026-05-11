@@ -12,12 +12,13 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
+
 use crate::gui::colors;
 use crate::gui::helpers::{arc_path, full_circle_path};
 use crate::{
     gestures::drag::ActiveDrag,
     gui::app::{dispatcher::Dispatcher, state::AppState},
-    parameters::{Parameter, Range, angle::Angle},
+    parameters::{Parameter, Range, xfeed_slope::XFeedSlope},
     state::GuiRequest,
 };
 use anyrender::PaintScene as _;
@@ -30,17 +31,17 @@ use vello::{
     peniko::{BrushRef, Fill},
 };
 
-pub struct ParamAngleWidget {
+pub struct ParamXFeedSlopeWidget {
     normalized: f64,
 }
 
-impl ParamAngleWidget {
+impl ParamXFeedSlopeWidget {
     fn new() -> Self {
         Self { normalized: 0.0 }
     }
 }
 
-impl Widget for ParamAngleWidget {
+impl Widget for ParamXFeedSlopeWidget {
     fn attribute_changed(&mut self, name: &str, _old_value: Option<&str>, new_value: Option<&str>) {
         if name == "value" {
             if let Some(v) = new_value.and_then(|s| s.parse().ok()) {
@@ -122,26 +123,26 @@ impl Widget for ParamAngleWidget {
 }
 
 #[component]
-pub fn ParamAngleKnob() -> Element {
+pub fn ParamXFeedSlopeKnob() -> Element {
     let state = consume_context::<Signal<AppState>>();
     let dispatcher = consume_context::<Dispatcher>();
     let mut drag = consume_context::<Signal<Option<ActiveDrag>>>();
 
-    let normalized = Parameter::<Angle, Range>::new().normalize(state.read().params[Parameter::<Angle, Range>::ID]);
+    let normalized = Parameter::<XFeedSlope, Range>::new().normalize(state.read().params[Parameter::<XFeedSlope, Range>::ID]);
 
-    let custom_widget = use_memo(|| CustomWidgetAttr::new(ParamAngleWidget::new()));
+    let custom_widget = use_memo(|| CustomWidgetAttr::new(ParamXFeedSlopeWidget::new()));
     let dispatcher_cloned = dispatcher.clone();
 
     rsx! {
         div {
-            class: "w-16 h-16",
+            class: "w-14 h-14",
             onmousedown: move |e| {
-                dispatcher(GuiRequest::BeginGesture(Parameter::<Angle, Range>::ID));
+                dispatcher(GuiRequest::BeginGesture(Parameter::<XFeedSlope, Range>::ID));
                 let coords = e.data().client_coordinates();
-                let raw = state.read().params[Parameter::<Angle, Range>::ID];
-                drag.set(ActiveDrag::from_index(Parameter::<Angle, Range>::ID, coords.x, coords.y, raw));
+                let raw = state.read().params[Parameter::<XFeedSlope, Range>::ID];
+                drag.set(ActiveDrag::from_index(Parameter::<XFeedSlope, Range>::ID, coords.x, coords.y, raw));
             },
-            ondoubleclick: move |_| dispatcher_cloned(GuiRequest::ResetParam(Parameter::<Angle, Range>::ID)),
+            ondoubleclick: move |_| dispatcher_cloned(GuiRequest::ResetParam(Parameter::<XFeedSlope, Range>::ID)),
             object {
                 style: "display: block; width: 100%; height: 100%;",
                 "data": custom_widget,

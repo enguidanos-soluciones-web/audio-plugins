@@ -17,50 +17,67 @@ use super::{
     PARAMETER_GESTURE_DOUBLE_CLICK, PARAMETER_GESTURE_DRAG, Parameter, ParameterClickable, ParameterDraggable, ProposedParamChange, Range,
 };
 
+/// Marker type for the XFeed lowpass Q (slope) parameter.
+///
+/// Controls the Q of the second-order biquad LP on the crossed path. Q shapes
+/// the rolloff around `Cutoff`: low Q broadens the transition band (gentler
+/// head shadow), high Q narrows it and introduces a resonance peak at `Cutoff`
+/// (more pronounced head shadow effect).
+///
+/// The underlying biquad always rolls off at −12 dB/oct asymptotically. Q
+/// affects only the behaviour in the transition region around `Cutoff`:
+///
+/// | Q     | Character                                        |
+/// |-------|--------------------------------------------------|
+/// | 0.5   | Critically damped — broadest rolloff, no peak    |
+/// | 0.707 | Butterworth — maximally flat, no resonance       |
+/// | 1.0   | Slight resonance peak at `Cutoff`                |
+/// | >1.0  | Strong peak — use with care                      |
 #[derive(Clone, Copy)]
-pub struct Gain;
+pub struct XFeedSlope;
 
-impl Parameter<Gain, Range> {
-    pub const ID: usize = 4;
+impl Parameter<XFeedSlope, Range> {
+    pub const ID: usize = 9;
 
     pub const fn new() -> Self {
         Self {
             id: Self::ID,
-            name: "Gain",
+            name: "Slope",
             gestures: PARAMETER_GESTURE_DRAG | PARAMETER_GESTURE_DOUBLE_CLICK,
             behave: Range {
-                min: 0.0,
-                max: 12.0,
-                def: 0.0,
+                min: 0.1,
+                max: 2.0,
+                def: 0.707,
             },
             _marker_type: std::marker::PhantomData,
             _marker_behaviour: std::marker::PhantomData,
         }
     }
 
+    /// Format Q for display — two decimal places (e.g. `"0.71"`).
     pub fn format_value(value: f64) -> String {
-        format!("{:.1}", value)
+        format!("{:.2}", value)
     }
 
-    pub fn as_draggable(&self) -> Option<ParameterDraggable<'_, Gain, Range>> {
+    pub fn as_draggable(&self) -> Option<ParameterDraggable<'_, XFeedSlope, Range>> {
         if self.gestures & PARAMETER_GESTURE_DRAG != 0 {
-            Some(ParameterDraggable::<Gain, Range>::new(self))
+            Some(ParameterDraggable::<XFeedSlope, Range>::new(self))
         } else {
             None
         }
     }
 
-    pub fn as_clickable(&self) -> Option<ParameterClickable<'_, Gain, Range>> {
+    pub fn as_clickable(&self) -> Option<ParameterClickable<'_, XFeedSlope, Range>> {
         if self.gestures & PARAMETER_GESTURE_DOUBLE_CLICK != 0 {
-            Some(ParameterClickable::<Gain, Range>::new(self))
+            Some(ParameterClickable::<XFeedSlope, Range>::new(self))
         } else {
             None
         }
     }
 }
 
-impl<'a> ParameterDraggable<'a, Gain, Range> {
-    pub fn new(inner: &'a Parameter<Gain, Range>) -> Self {
+impl<'a> ParameterDraggable<'a, XFeedSlope, Range> {
+    pub fn new(inner: &'a Parameter<XFeedSlope, Range>) -> Self {
         Self {
             inner,
             _marker_type: std::marker::PhantomData,
@@ -80,8 +97,8 @@ impl<'a> ParameterDraggable<'a, Gain, Range> {
     }
 }
 
-impl<'a> ParameterClickable<'a, Gain, Range> {
-    pub fn new(inner: &'a Parameter<Gain, Range>) -> Self {
+impl<'a> ParameterClickable<'a, XFeedSlope, Range> {
+    pub fn new(inner: &'a Parameter<XFeedSlope, Range>) -> Self {
         Self {
             inner,
             _marker_type: std::marker::PhantomData,

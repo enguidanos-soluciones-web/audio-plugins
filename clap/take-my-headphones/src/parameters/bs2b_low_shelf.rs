@@ -17,50 +17,77 @@ use super::{
     PARAMETER_GESTURE_DOUBLE_CLICK, PARAMETER_GESTURE_DRAG, Parameter, ParameterClickable, ParameterDraggable, ProposedParamChange, Range,
 };
 
+/// Marker type for the bs2b direct-path low shelf filter gain parameter.
+///
+/// Controls `ls_db` — the low-frequency gain of the first-order IIR low shelf
+/// on the **direct path** of the bs2b crossfeed structure. The filter attenuates
+/// low frequencies and passes high frequencies at unity, which perceptually
+/// appears as a high-frequency lift on the direct path.
+///
+/// At DC (ω = 0): gain = `ls_db`.
+/// At Nyquist: gain → 0 dB (unity).
+/// Transition frequency: derived from Cutoff and XFeed internals.
+///
+/// | ls_db  | Character                                                |
+/// |--------|----------------------------------------------------------|
+/// | 0 dB   | No attenuation — direct path flat across all frequencies |
+/// | −3 dB  | Moderate shelf — typical for medium crossfeed levels     |
+/// | −6 dB  | Deep shelf — strong low-frequency attenuation            |
+///
+/// In the original bs2b design this value was derived from XFeed via the fixed
+/// 3:1 ratio `ls_db = −XFeed / 2`. This parameter breaks that coupling so the
+/// shelf can be tuned independently.
+///
+/// # Relationship to XFeed
+///
+/// Perceived crossfeed = `|Gd| − |ls_db|`, where `Gd = −XFeed × 1.5`.
+/// Raising `ls_db` toward 0 dB reduces perceived crossfeed without changing
+/// the LP gain; lowering it deepens the shelf and increases perceived crossfeed.
 #[derive(Clone, Copy)]
-pub struct Gain;
+pub struct Bs2bLowShelf;
 
-impl Parameter<Gain, Range> {
-    pub const ID: usize = 4;
+impl Parameter<Bs2bLowShelf, Range> {
+    pub const ID: usize = 10;
 
     pub const fn new() -> Self {
         Self {
             id: Self::ID,
-            name: "Gain",
+            name: "Low Shelf",
             gestures: PARAMETER_GESTURE_DRAG | PARAMETER_GESTURE_DOUBLE_CLICK,
             behave: Range {
-                min: 0.0,
-                max: 12.0,
-                def: 0.0,
+                min: -12.0,
+                max: 0.0,
+                def: -3.1,
             },
             _marker_type: std::marker::PhantomData,
             _marker_behaviour: std::marker::PhantomData,
         }
     }
 
+    /// Format low shelf gain for display — two decimal places with unit (e.g. `"-3.10 dB"`).
     pub fn format_value(value: f64) -> String {
-        format!("{:.1}", value)
+        format!("{:.2} dB", value)
     }
 
-    pub fn as_draggable(&self) -> Option<ParameterDraggable<'_, Gain, Range>> {
+    pub fn as_draggable(&self) -> Option<ParameterDraggable<'_, Bs2bLowShelf, Range>> {
         if self.gestures & PARAMETER_GESTURE_DRAG != 0 {
-            Some(ParameterDraggable::<Gain, Range>::new(self))
+            Some(ParameterDraggable::<Bs2bLowShelf, Range>::new(self))
         } else {
             None
         }
     }
 
-    pub fn as_clickable(&self) -> Option<ParameterClickable<'_, Gain, Range>> {
+    pub fn as_clickable(&self) -> Option<ParameterClickable<'_, Bs2bLowShelf, Range>> {
         if self.gestures & PARAMETER_GESTURE_DOUBLE_CLICK != 0 {
-            Some(ParameterClickable::<Gain, Range>::new(self))
+            Some(ParameterClickable::<Bs2bLowShelf, Range>::new(self))
         } else {
             None
         }
     }
 }
 
-impl<'a> ParameterDraggable<'a, Gain, Range> {
-    pub fn new(inner: &'a Parameter<Gain, Range>) -> Self {
+impl<'a> ParameterDraggable<'a, Bs2bLowShelf, Range> {
+    pub fn new(inner: &'a Parameter<Bs2bLowShelf, Range>) -> Self {
         Self {
             inner,
             _marker_type: std::marker::PhantomData,
@@ -80,8 +107,8 @@ impl<'a> ParameterDraggable<'a, Gain, Range> {
     }
 }
 
-impl<'a> ParameterClickable<'a, Gain, Range> {
-    pub fn new(inner: &'a Parameter<Gain, Range>) -> Self {
+impl<'a> ParameterClickable<'a, Bs2bLowShelf, Range> {
+    pub fn new(inner: &'a Parameter<Bs2bLowShelf, Range>) -> Self {
         Self {
             inner,
             _marker_type: std::marker::PhantomData,
