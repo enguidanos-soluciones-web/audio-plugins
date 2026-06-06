@@ -1,7 +1,8 @@
 [workspace]
 resolver = "3"
 members = [
-    "clap/take-my-headphones"
+    "clap/take-my-headphones",
+    "clap/neural-amp-modeler"
 ]
 
 [workspace.package]
@@ -12,8 +13,8 @@ license = "GPL-3.0"
 strip = "symbols"
 lto = "fat"
 codegen-units = 1
-opt-level = "z"       # optimiza para tamaño (no velocidad)
-panic = "abort"       # elimina unwinding machinery (~10-15% del binary)
+opt-level = "z"
+panic = "abort"
 overflow-checks = false
 
 [workspace.dependencies]
