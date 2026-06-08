@@ -2511,7 +2511,7 @@ dependencies = [
 
 [[package]]
 name = "neural-amp-modeler"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "anyrender",
  "anyrender_vello",
