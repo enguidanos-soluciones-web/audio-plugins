@@ -86,7 +86,9 @@ impl View {
         // Mark all nodes dirty so flush_styles_to_layout re-propagates
         // viewport-dependent sizes (h-full, w-full, flex-1) on next resolve().
         let root_id = inner.root_element().id;
-        inner.get_node(root_id).map(|n| n.set_dirty_descendants());
+        if let Some(n) = inner.get_node(root_id) {
+            n.set_dirty_descendants()
+        }
     }
 
     pub fn send_pointer_down(&mut self, x: f64, y: f64, button: MouseButton) {
@@ -143,9 +145,10 @@ impl View {
             let viewport = self.doc.inner().viewport().clone();
             let mut inner = self.doc.inner_mut();
             let mut painter = VelloScenePainter::new(scene);
+
             paint_scene(
                 &mut painter,
-                &mut *inner,
+                &mut inner,
                 viewport.scale_f64(),
                 viewport.window_size.0,
                 viewport.window_size.1,

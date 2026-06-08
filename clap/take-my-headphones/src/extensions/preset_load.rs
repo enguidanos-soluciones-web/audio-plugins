@@ -44,7 +44,7 @@ unsafe extern "C" fn from_location(
     new_snapshot.values = values;
     main.param_snapshot.store(Arc::new(new_snapshot));
 
-    for id in 0..PARAMS_COUNT {
+    for (id, _) in values.iter().enumerate().take(PARAMS_COUNT) {
         let _ = main.param_changes.push(ParamChange::Value { id, value: values[id] });
     }
 

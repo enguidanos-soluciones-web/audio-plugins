@@ -43,10 +43,10 @@ impl ParamBs2bLowShelfWidget {
 
 impl Widget for ParamBs2bLowShelfWidget {
     fn attribute_changed(&mut self, name: &str, _old_value: Option<&str>, new_value: Option<&str>) {
-        if name == "value" {
-            if let Some(v) = new_value.and_then(|s| s.parse().ok()) {
-                self.normalized = v;
-            }
+        if name == "value"
+            && let Some(v) = new_value.and_then(|s| s.parse().ok())
+        {
+            self.normalized = v;
         }
     }
 

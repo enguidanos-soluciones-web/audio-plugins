@@ -57,7 +57,7 @@ pub fn Layout() -> Element {
                     let now = Instant::now();
                     let should_dispatch = drag_last_dispatch
                         .read()
-                        .map_or(true, |t| now.duration_since(t) >= DRAG_THROTTLE);
+                        .is_none_or(|t| now.duration_since(t) >= DRAG_THROTTLE);
 
                     if should_dispatch {
                         let coords = e.data().client_coordinates();

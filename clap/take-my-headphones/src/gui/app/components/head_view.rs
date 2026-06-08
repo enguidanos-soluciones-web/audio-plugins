@@ -107,7 +107,7 @@ impl HeadViewWidget {
             let t = i as f64 / (MINI_N - 1) as f64;
             let f = MINI_F_MIN * (MINI_F_MAX / MINI_F_MIN).powf(t);
             let db = magnitude_fn(coeffs, f);
-            if db < MINI_DB_MIN || db > MINI_DB_MAX {
+            if !(MINI_DB_MIN..=MINI_DB_MAX).contains(&db) {
                 pen = false;
                 continue;
             }

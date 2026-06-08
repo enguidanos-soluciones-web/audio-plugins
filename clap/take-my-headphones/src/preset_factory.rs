@@ -146,10 +146,10 @@ unsafe extern "C" fn provider_get_metadata(
         let name = CString::new(preset.name).unwrap();
         let key = CString::new(preset.load_key).unwrap();
 
-        if let Some(begin) = receiver_ref.begin_preset {
-            if !unsafe { begin(metadata_receiver, name.as_ptr(), key.as_ptr()) } {
-                return false;
-            }
+        if let Some(begin) = receiver_ref.begin_preset
+            && !unsafe { begin(metadata_receiver, name.as_ptr(), key.as_ptr()) }
+        {
+            return false;
         }
 
         if let Some(add_plugin_id) = receiver_ref.add_plugin_id {

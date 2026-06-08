@@ -175,7 +175,7 @@ impl XFeedCurveWidget {
             // Log-spaced frequency: F_MIN · (F_MAX/F_MIN)^t
             let f = F_MIN * (F_MAX / F_MIN).powf(t);
             let db = magnitude_fn(coeffs, f);
-            if db < DB_MIN || db > DB_MAX {
+            if !(DB_MIN..=DB_MAX).contains(&db) {
                 pen_down = false;
                 continue;
             }

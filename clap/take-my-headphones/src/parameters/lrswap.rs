@@ -18,15 +18,15 @@ use std::{fmt::Display, str::FromStr};
 #[repr(u8)]
 #[derive(Clone, Copy)]
 pub enum LRSwap {
-    OFF = 0,
-    ON = 1,
+    Off = 0,
+    On = 1,
 }
 
 impl Display for LRSwap {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::ON => write!(f, "On"),
-            Self::OFF => write!(f, "Off"),
+            Self::On => write!(f, "On"),
+            Self::Off => write!(f, "Off"),
         }
     }
 }
@@ -36,8 +36,8 @@ impl FromStr for LRSwap {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "On" => Ok(Self::ON),
-            "Off" => Ok(Self::OFF),
+            "On" => Ok(Self::On),
+            "Off" => Ok(Self::Off),
             _ => Err(()),
         }
     }
@@ -46,8 +46,8 @@ impl FromStr for LRSwap {
 impl From<u8> for LRSwap {
     fn from(v: u8) -> Self {
         match v {
-            1 => Self::ON,
-            _ => Self::OFF,
+            1 => Self::On,
+            _ => Self::Off,
         }
     }
 }
@@ -77,8 +77,8 @@ impl Parameter<LRSwap, Select> {
             name: "L/R Swap",
             gestures: 0,
             behave: Select {
-                options: &[LRSwap::OFF as u8, LRSwap::ON as u8],
-                def: LRSwap::OFF as u8,
+                options: &[LRSwap::Off as u8, LRSwap::On as u8],
+                def: LRSwap::Off as u8,
             },
             _marker_type: std::marker::PhantomData,
             _marker_behaviour: std::marker::PhantomData,

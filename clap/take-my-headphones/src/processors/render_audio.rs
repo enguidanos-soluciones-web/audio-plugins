@@ -82,7 +82,7 @@ pub fn render_audio_f64(
 
         // 1. L/R swap
         let mut lrswap_output = calibration_output;
-        if matches!(lrswap, LRSwap::ON) {
+        if matches!(lrswap, LRSwap::On) {
             lrswap_output = calibration_output.reverse()
         };
 
@@ -185,7 +185,7 @@ pub fn render_audio_f32(
 
         // 1. L/R swap
         let mut lrswap_output = calibration_output;
-        if matches!(lrswap, LRSwap::ON) {
+        if matches!(lrswap, LRSwap::On) {
             lrswap_output = calibration_output.reverse()
         };
 

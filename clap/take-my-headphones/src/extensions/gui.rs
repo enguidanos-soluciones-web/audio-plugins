@@ -96,7 +96,7 @@ pub unsafe extern "C" fn get_preferred_api(
     #[cfg(target_os = "macos")]
     {
         unsafe { *api = CLAP_WINDOW_API_COCOA.as_ptr() as *const std::ffi::c_char };
-        return true;
+        true
     }
     #[cfg(not(any(target_os = "linux", target_os = "windows", target_os = "macos")))]
     {

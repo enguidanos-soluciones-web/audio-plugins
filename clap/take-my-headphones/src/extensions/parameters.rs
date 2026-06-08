@@ -170,7 +170,7 @@ pub extern "C" fn get_value(plugin: *const clap_plugin_t, id: clap_id, value: *m
 
     let value_ref = unsafe { value.as_mut_unchecked() };
     let snapshot = main_thread.param_snapshot.load();
-    *value_ref = snapshot.values[id as usize] as f64;
+    *value_ref = snapshot.values[id as usize];
 
     true
 }
@@ -230,7 +230,7 @@ pub extern "C" fn text_to_value(plugin: *const clap_plugin_t, _param_id: clap_id
         return true;
     }
     if _param_id as usize == Parameter::<LRSwap, Select>::ID {
-        let v = s.parse::<LRSwap>().unwrap_or(LRSwap::OFF) as u8 as f64;
+        let v = s.parse::<LRSwap>().unwrap_or(LRSwap::Off) as u8 as f64;
         unsafe { *value = v };
         return true;
     }

@@ -13,7 +13,14 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-use crate::{clap::*, dsp, helper::DecibelConversion, parameters::any::PARAMS_COUNT, plugin::Plugin, state::{ModelUpdate, ParamChange}};
+use crate::{
+    clap::*,
+    dsp,
+    helper::DecibelConversion,
+    parameters::any::PARAMS_COUNT,
+    plugin::Plugin,
+    state::{ModelUpdate, ParamChange},
+};
 use std::{os::raw::c_void, sync::Arc};
 
 pub static STATE_EXT: clap_plugin_state_t = clap_plugin_state {
@@ -145,7 +152,10 @@ pub extern "C" fn load(plugin: *const clap_plugin_t, stream: *const clap_istream
                 new_gui_shared.model_name = Some(model_name);
                 main_thread.gui_shared.store(Arc::new(new_gui_shared));
 
-                let _ = main_thread.model_updates.push(ModelUpdate { model, loudness_correction });
+                let _ = main_thread.model_updates.push(ModelUpdate {
+                    model,
+                    loudness_correction,
+                });
             }
         }
     }
