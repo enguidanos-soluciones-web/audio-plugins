@@ -19,8 +19,11 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Pin clap submodule to tag 1.2.7
-        run: git -C external/clap-1.2.7 checkout tags/1.2.7
+      - name: Pin clap submodule to tag 1.2.8
+        run: git -C external/clap-1.2.8 checkout tags/1.2.8
+
+      - name: Pin nam-core submodule to tag 0.5.3
+        run: git -C external/neural-amp-modeler-0.5.3 checkout tags/v0.5.3
 
       - name: Derive variables from tag
         run: |
@@ -130,8 +133,11 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Pin clap submodule to tag 1.2.7
-        run: git -C external/clap-1.2.7 checkout tags/1.2.7
+      - name: Pin clap submodule to tag 1.2.8
+        run: git -C external/clap-1.2.8 checkout tags/1.2.8
+
+      - name: Pin nam-core submodule to tag 0.5.3
+        run: git -C external/neural-amp-modeler-0.5.3 checkout tags/v0.5.3
 
       - name: Derive variables from tag
         run: |
@@ -199,8 +205,11 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Pin clap submodule to tag 1.2.7
-        run: git -C external/clap-1.2.7 checkout tags/1.2.7
+      - name: Pin clap submodule to tag 1.2.8
+        run: git -C external/clap-1.2.8 checkout tags/1.2.8
+
+      - name: Pin nam-core submodule to tag 0.5.3
+        run: git -C external/neural-amp-modeler-0.5.3 checkout tags/v0.5.3
 
       - name: Derive variables from tag
         shell: bash
