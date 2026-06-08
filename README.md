@@ -6,19 +6,25 @@ Functional emulation of the Matrix section of the SPL Phonitor 3 and more.
 
 ![screenshot](./docs/take_my_headphones.png)
 
+### 2. Neural Amp Modeler (Crossplatform)
+
+Crossplatform fork of official Neural Amp Modeler.
+
+![screenshot](./docs/neural_amp_modeler.png)
+
 ### Contributing
 
 ```bash
 git submodule update --init --recursive
 
-cd external/clap-1.2.7
-git checkout tags/1.2.7
+cd external/clap-1.2.8
+git checkout tags/1.2.8
 
-cd external/neural-amp-modeler-0.5.1
-git checkout tags/v0.5.1
+cd external/neural-amp-modeler-0.5.3
+git checkout tags/v0.5.3
 ```
 
-### Releases
+#### Releases
 
 Uses [`cargo-release`](https://github.com/crate-io/cargo-release). Config in `release.toml`.
 

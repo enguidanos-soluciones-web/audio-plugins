@@ -1,0 +1,23 @@
+// Copyright (C) 2026 Cristian A. Enguídanos Nebot
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+use crate::parameters::any::PARAMS_COUNT;
+
+#[derive(Clone, Default)]
+pub struct AppState {
+    pub params: [f64; PARAMS_COUNT],
+    pub model_name: Option<String>,
+    pub model_rate: Option<f64>,
+}

@@ -18,25 +18,28 @@ panic = "abort"
 overflow-checks = false
 
 [workspace.dependencies]
-arc-swap = "1.9.1"
-anyrender = "0.9"
-anyrender_vello = "0.9"
-baseview = { git = "https://github.com/RustAudio/baseview" }
-blitz-dom = { git = "https://github.com/DioxusLabs/blitz", features = ["custom-widget"] }
-blitz-paint = { git = "https://github.com/DioxusLabs/blitz", default-features = false, features = ["custom-widget"] }
-blitz-traits = { git = "https://github.com/DioxusLabs/blitz", default-features = false }
-dioxus-native-dom = { git = "https://github.com/DioxusLabs/blitz", default-features = false, features = ["system-fonts"] }
-dioxus = { version = "0.7.7", features = ["macro"] }
-dioxus-core = "0.7.7"
-keyboard-types = "0.7"
-cxx = "1.0.194"
-pollster = "0.4.0"
+arc-swap = "=1.9.1"
+anyrender = "=0.11.0"
+anyrender_vello = "=0.11.0"
+baseview = "=0.1.1"
+blitz-dom = { git = "https://github.com/DioxusLabs/blitz", rev = "7ecd70b7", features = ["custom-widget"] }
+blitz-paint = { git = "https://github.com/DioxusLabs/blitz", rev = "7ecd70b7", default-features = false, features = ["custom-widget"] }
+blitz-traits = { git = "https://github.com/DioxusLabs/blitz", rev = "7ecd70b7", default-features = false }
+dioxus-native-dom = { git = "https://github.com/DioxusLabs/blitz", rev = "7ecd70b7", default-features = false, features = ["system-fonts"] }
+dioxus = { version = "=0.7.9", features = ["macro"] }
+dioxus-core = "=0.7.9"
+keyboard-types = "=0.8.3"
+cxx = "=1.0.194"
+pollster = "=0.4.0"
 raw-window-handle = "0.5"
-vello = "0.8.0"
-wgpu = "28.0.0"
-crossbeam-queue = "0.3.12"
-strum = "0.28.0"
-strum_macros = "0.28.0"
-bindgen = "0.72.1"
-cxx-build = "1.0.194"
-rfd = { version = "0.17.2", default-features = false }
+vello = "=0.9.0"
+wgpu = "=29.0.3"
+crossbeam-queue = "=0.3.12"
+strum = "=0.28.0"
+strum_macros = "=0.28.0"
+bindgen = "=0.72.1"
+cxx-build = "=1.0.194"
+rfd = { version = "=0.17.2", default-features = false }
+
+[patch.crates-io]
+raw-window-metal = { git = "https://github.com/rust-windowing/raw-window-metal", branch = "fix-class-name" }

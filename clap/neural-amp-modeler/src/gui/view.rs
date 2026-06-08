@@ -14,8 +14,12 @@
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 use crate::{
-    gui::app::{dispatcher::Dispatcher, layout::Layout, state::AppState},
-    parameters::any::PARAMS_COUNT,
+    gui::{
+        HitTarget,
+        app::{dispatcher::Dispatcher, layout::Layout, state::AppState},
+        widget::Widget,
+    },
+    parameters::{Parameter, Range, any::PARAMS_COUNT, blend::Blend, input_gain::InputGain, output_gain::OutputGain, tone::Tone},
     state::GUIShared,
 };
 use anyrender_vello::VelloScenePainter;
@@ -32,10 +36,18 @@ use dioxus_core::{ScopeId, VirtualDom};
 use dioxus_native_dom::DioxusDocument;
 use vello::Scene;
 
+const PARAM_WIDGETS: &[(&str, usize)] = &[
+    ("input-gain", Parameter::<InputGain, Range>::ID),
+    ("output-gain", Parameter::<OutputGain, Range>::ID),
+    ("tone", Parameter::<Tone, Range>::ID),
+    ("blend", Parameter::<Blend, Range>::ID),
+];
+
 pub struct View {
     pub doc: DioxusDocument,
     pub app_state: Signal<AppState>,
     pub pointer: (f64, f64),
+    pub element_at_pointer: Option<HitTarget>,
     pub held_buttons: MouseEventButtons,
 }
 
@@ -73,6 +85,7 @@ impl View {
             doc,
             app_state,
             pointer: (0.0, 0.0),
+            element_at_pointer: None,
             held_buttons: MouseEventButtons::None,
         }
     }
@@ -122,11 +135,30 @@ impl View {
         }
     }
 
-    /// Called on every CursorMoved event. Forwards the pointer position to the DOM.
-    pub fn send_pointer_move(&mut self, x: f64, y: f64) {
+    /// Called on every CursorMoved event. Single source of truth for pointer position
+    /// and hit testing — sets both `self.pointer` and `self.element_at_pointer`.
+    pub fn hit_test(&mut self, x: f64, y: f64) {
         self.pointer = (x, y);
+        self.element_at_pointer = None;
+
         let ui_event = UiEvent::PointerMove(self.make_pointer_event(x, y, MouseEventButton::Main));
         self.doc.handle_ui_event(ui_event);
+
+        let inner = self.doc.inner();
+        let Some(hit) = inner.hit(x as f32, y as f32) else {
+            return;
+        };
+
+        let mut node_id = Some(hit.node_id);
+        while let Some(id) = node_id {
+            for &(dom_id, param_id) in PARAM_WIDGETS {
+                if inner.get_element_by_id(dom_id) == Some(id) {
+                    self.element_at_pointer = Some(HitTarget::Param(param_id));
+                    return;
+                }
+            }
+            node_id = inner.get_node(id).and_then(|n| n.parent);
+        }
     }
 
     pub fn render(&mut self, scene: &mut Scene, state: &GUIShared, parameters_values: &[f64; PARAMS_COUNT]) {
@@ -140,8 +172,8 @@ impl View {
         }
 
         {
-            let viewport = self.doc.inner().viewport().clone();
             let mut inner = self.doc.inner_mut();
+            let viewport = inner.viewport().clone();
             let mut painter = VelloScenePainter::new(scene);
             paint_scene(
                 &mut painter,
@@ -153,9 +185,52 @@ impl View {
                 0,
             );
         }
+
+        self.draw_widgets(scene, parameters_values);
     }
 
-    pub fn update_app_state(&mut self, _state: &GUIShared, parameters_values: &[f64; PARAMS_COUNT]) {
+    pub fn draw_widget(&mut self, scene: &mut Scene, widget: &dyn Widget, value: f64) {
+        let inner = self.doc.inner();
+        let Some(node_id) = inner.get_element_by_id(widget.dom_id()) else {
+            return;
+        };
+
+        let Some(rect) = inner.get_client_bounding_rect(node_id) else {
+            return;
+        };
+
+        drop(inner);
+
+        widget.draw(scene, (rect.x, rect.y), (rect.width, rect.height), self.pointer, value);
+    }
+
+    pub fn draw_widgets(&mut self, scene: &mut Scene, parameters_values: &[f64; PARAMS_COUNT]) {
+        self.draw_widget(
+            scene,
+            &Parameter::<InputGain, Range>::new(),
+            parameters_values[Parameter::<InputGain, Range>::ID],
+        );
+
+        self.draw_widget(
+            scene,
+            &Parameter::<OutputGain, Range>::new(),
+            parameters_values[Parameter::<OutputGain, Range>::ID],
+        );
+
+        self.draw_widget(
+            scene,
+            &Parameter::<Tone, Range>::new(),
+            parameters_values[Parameter::<Tone, Range>::ID],
+        );
+
+        self.draw_widget(
+            scene,
+            &Parameter::<Blend, Range>::new(),
+            parameters_values[Parameter::<Blend, Range>::ID],
+        );
+    }
+
+    pub fn update_app_state(&mut self, state: &GUIShared, parameters_values: &[f64; PARAMS_COUNT]) {
         // Write inside the Dioxus runtime so the reactive system tracks the change
         // and sends SchedulerMsg to the vdom channel.
         let mut app_state = self.app_state;
@@ -163,6 +238,8 @@ impl View {
         self.doc.vdom.in_runtime(|| {
             let mut s = app_state.write();
             s.params = *parameters_values;
+            s.model_name = state.model_name.clone();
+            s.model_rate = state.nam_model_rate;
         });
     }
 }

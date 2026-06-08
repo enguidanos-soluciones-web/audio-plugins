@@ -1,8 +1,12 @@
-[submodule "external/clap-1.2.7"]
-	path = external/clap-1.2.7
-	url = https://github.com/free-audio/clap
-	branch = main
-[submodule "external/neural-amp-modeler-0.5.1"]
-	path = external/neural-amp-modeler-0.5.1
+[submodule "external/neural-amp-modeler-0.5.3"]
+	path = external/neural-amp-modeler-0.5.3
 	url = https://github.com/sdatkinson/NeuralAmpModelerCore.git
+	branch = main
+[submodule "external/neural-amp-modeler-official-plugin"]
+	path = external/neural-amp-modeler-official-plugin
+	url = https://github.com/sdatkinson/NeuralAmpModelerPlugin.git
+	branch = main
+[submodule "external/clap-1.2.8"]
+	path = external/clap-1.2.8
+	url = https://github.com/free-audio/clap
 	branch = main

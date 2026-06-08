@@ -1,6 +1,6 @@
 [package]
-name = "take-my-headphones"
-version = "1.0.7"
+name = "neural-amp-modeler"
+version = "0.1.0"
 edition = "2024"
 authors.workspace = true
 license.workspace = true
