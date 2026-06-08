@@ -12,7 +12,8 @@ tag = true
 tag-name = "{{crate_name}}-v{{version}}"
 tag-message = "{{crate_name}} {{version}}"
 
-# Commit message for the version bump
+# One commit per package so {{crate_name}} and {{version}} are available
+consolidate-commits = false
 pre-release-commit-message = "chore: bump {{crate_name}} to {{version}}"
 
 # Don't run tests before releasing (CI handles that)
